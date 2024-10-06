@@ -1,0 +1,49 @@
+[package]
+name = "energon"
+version = "0.0.1"
+edition = "2021"
+authors = ["version513 <seuair@gmail.com>"]
+
+[dependencies]
+aes-gcm = "0.10.1"
+hkdf = "0.12.3"
+pairing = { version = "0.23.0" }
+crev-common = "0.25.0"
+thiserror = "1"
+rand = "0.8.4"
+rand_core = "0.6.4"
+rand_chacha = "0.3.0"
+blstrs = "0.7.0"
+blst_lib = { version = "0.3.11", package = "blst" }
+sha2 = "0.10.7"
+hex = "0.4.2"
+
+ark-bls12-381 = "0.4.0"
+ark-ec = "0.4.2"
+ark-std = "0.4.0"
+ark-serialize = "0.4.2"
+ark-ff = "0.4.2"
+
+[dependencies.crypto-common]
+version = "0.1.3"
+
+[dependencies.group]
+version = "0.13.0"
+default-features = false
+optional = false
+
+[features]
+bls12381_arkworks = []
+bls12381_blstrs = []
+
+[profile.release]
+lto = true
+strip = true
+codegen-units = 1
+
+[dev-dependencies]
+criterion = "0.5.1"
+
+[[bench]]
+name = "basic"
+harness = false
