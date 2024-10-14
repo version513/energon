@@ -1,12 +1,11 @@
-use super::scheme::Scheme;
-
 use crate::traits::Affine;
 use crate::traits::Group;
-use crate::traits::PointError;
 use crate::traits::Projective;
 use crate::traits::ScalarField;
+use crate::traits::Scheme;
 
-type PublicKey<S> = <<S as Scheme>::Key as Group>::Affine;
+use crate::backends::PointError;
+use crate::points::KeyPoint;
 
 pub struct PriShare<S: Scheme> {
     pub i: u32,
@@ -57,17 +56,17 @@ impl<S: Scheme> PriPoly<S> {
 }
 
 pub struct PubPoly<S: Scheme> {
-    pub commits: Vec<PublicKey<S>>,
+    pub commits: Vec<KeyPoint<S>>,
 }
 
 #[derive(Debug)]
 pub struct PubShare<S: Scheme> {
     pub i: u32,
-    pub v: PublicKey<S>,
+    pub v: KeyPoint<S>,
 }
 
 impl<S: Scheme> PubShare<S> {
-    pub fn value(&self) -> &PublicKey<S> {
+    pub fn value(&self) -> &KeyPoint<S> {
         &self.v
     }
 }
