@@ -47,3 +47,4 @@ macro_rules! impl_groups {
 
 pub(in crate::backends) use impl_groups;
 pub mod error;
+pub use error::{BlsError, PointError, ScalarError};

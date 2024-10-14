@@ -1,6 +1,6 @@
-pub use crate::backends::error::BlsError;
-pub use crate::backends::error::PointError;
-pub use crate::backends::error::ScalarError;
+use crate::backends::BlsError;
+use crate::backends::PointError;
+use crate::backends::ScalarError;
 
 use std::fmt::Debug;
 use std::fmt::Display;
@@ -104,4 +104,18 @@ pub trait PairingCurve: Group {
 
     fn bls_sign(msg: &[u8], sk: &Self::Scalar) -> Result<Self::Pair, BlsError>;
     fn bls_verify(key: &Self::Affine, sig: &Self::Pair, msg: &[u8]) -> Result<(), BlsError>;
+}
+
+pub trait Scheme {
+    type Key: Group<Scalar = Self::Scalar>
+        + PairingCurve<Scalar = Self::Scalar, Pair = <Self::Sig as Group>::Affine>;
+
+    type Sig: Group<Scalar = Self::Scalar>;
+
+    type Scalar: ScalarField
+        + for<'a> Mul<&'a <Self::Key as Group>::Affine, Output = <Self::Key as Group>::Projective>;
+
+    fn sk_to_pk(sk: &Self::Scalar) -> <Self::Key as Group>::Affine {
+        (<Self::Key as Group>::Affine::generator() * sk).into()
+    }
 }

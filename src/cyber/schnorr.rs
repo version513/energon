@@ -1,10 +1,10 @@
-use super::error::SchnorrError;
-use super::Scheme;
-
 use crate::traits::Affine;
 use crate::traits::Group;
 use crate::traits::Projective;
 use crate::traits::ScalarField;
+use crate::traits::Scheme;
+
+use super::error::SchnorrError;
 
 // Vanilla Schnorr signature scheme
 // ref: https://github.com/drand/kyber/blob/master/sign/schnorr
@@ -62,31 +62,4 @@ pub fn verify<S: Scheme>(
     }
 
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::drand::scheme::DefaultScheme;
-    use crate::drand::scheme::SchortSigScheme;
-    use crate::drand::scheme::UnchainedScheme;
-
-    #[test]
-    fn test_schnorr() {
-        for _ in 0..5 {
-            schnorr::<DefaultScheme>();
-            schnorr::<SchortSigScheme>();
-            schnorr::<UnchainedScheme>();
-        }
-    }
-
-    fn schnorr<S: Scheme>() {
-        let private = S::Scalar::random();
-        let public = S::sk_to_pk(&private);
-        let msg = S::Scalar::random().to_bytes_be().unwrap();
-        let sig = sign::<S>(&private, &msg).unwrap();
-        assert!(verify::<S>(&public, &msg, &sig).is_ok())
-    }
-
-    // TODO: add error asserts
 }

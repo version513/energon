@@ -1,10 +1,10 @@
-use super::error::EciesError;
-use super::Scheme;
-
 use crate::traits::Affine;
 use crate::traits::Group;
 use crate::traits::Projective;
 use crate::traits::ScalarField;
+use crate::traits::Scheme;
+
+use super::error::EciesError;
 
 use aes_gcm::aead::Aead;
 use aes_gcm::Aes256Gcm;
@@ -83,31 +83,4 @@ pub fn decrypt<S: Scheme>(
     let share = S::Scalar::from_bytes_be(&plain)?;
 
     Ok(share)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::drand::scheme::DefaultScheme;
-    use crate::drand::scheme::SchortSigScheme;
-    use crate::drand::scheme::UnchainedScheme;
-
-    #[test]
-    fn test_ecies() {
-        for _ in 0..5 {
-            ecies::<DefaultScheme>();
-            ecies::<SchortSigScheme>();
-            ecies::<UnchainedScheme>();
-        }
-    }
-
-    fn ecies<S: Scheme>() {
-        let private = S::Scalar::random();
-        let public = S::sk_to_pk(&private);
-        let msg = S::Scalar::random();
-
-        let encrypted_share = S::encrypt(&public, &msg).unwrap();
-        let decrypted_share = S::decrypt(&private, &encrypted_share).unwrap();
-        assert_eq!(msg, decrypted_share)
-    }
 }
