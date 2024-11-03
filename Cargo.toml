@@ -18,7 +18,11 @@ blst_lib = { version = "0.3.11", package = "blst" }
 sha2 = "0.10.7"
 hex = "0.4.2"
 
+num-traits = "0.2.19"
+num-bigint = "0.4.3"
+
 ark-bls12-381 = "0.4.0"
+ark-bn254 = "0.4.0"
 ark-ec = "0.4.2"
 ark-std = "0.4.0"
 ark-serialize = "0.4.2"

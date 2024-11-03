@@ -21,6 +21,11 @@ mod bls12381_arkworks {
     super::impl_groups!(bls12381);
 }
 
+mod bn254_arkworks {
+    #[cfg(test)]
+    mod test_vectors;
+}
+
 macro_rules! impl_groups {
     ($curve:ident) => {
         use crate::traits::Group;
