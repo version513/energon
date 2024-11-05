@@ -24,6 +24,7 @@ mod bls12381_arkworks {
 mod bn254_arkworks {
     #[cfg(test)]
     mod test_vectors;
+    mod utils;
 }
 
 macro_rules! impl_groups {

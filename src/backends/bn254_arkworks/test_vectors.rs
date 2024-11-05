@@ -1,29 +1,12 @@
-use ark_bn254::Fq;
-use ark_serialize::CanonicalDeserialize;
-
-use num_bigint::BigInt;
-use num_traits::Num;
-
-pub(super) fn fq_from_int(str_int: &str) -> Fq {
-    let (_, mut bytes_le) = BigInt::from_str_radix(str_int, 10).unwrap().to_bytes_le();
-
-    // dirty
-    if bytes_le.len() < 32 {
-        bytes_le.push(0);
-    }
-
-    <Fq as CanonicalDeserialize>::deserialize_compressed(bytes_le.as_slice()).unwrap()
-}
-
 #[allow(non_snake_case)]
 pub(super) struct TestVector {
     pub U: &'static str,
-    RefX: &'static str,
-    RefY: &'static str,
+    pub RefX: &'static str,
+    pub RefY: &'static str,
 }
 
 /// Test vectors copied from https://github.com/drand/kyber/blob/master/pairing/bn254/test_vectors.go#L518-L5517
-pub(super) fn map_to_G1_point_t() -> Vec<TestVector> {
+pub(super) fn map_to_g1_point_t() -> Vec<TestVector> {
     vec![
         TestVector {
             U: "3540903031681319421922757684101610645767707797048988415875375111724680581685",
