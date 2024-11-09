@@ -1,4 +1,4 @@
-#[derive(thiserror::Error, Debug)]
+#[derive(thiserror::Error, Debug, PartialEq)]
 pub enum PointError {
     #[error("invalid input lenght: expected {expected}, received {received}")]
     InvalidInputLenght { expected: usize, received: usize },
@@ -10,7 +10,7 @@ pub enum PointError {
     NonCanonicalInput,
 }
 
-#[derive(thiserror::Error, Debug)]
+#[derive(thiserror::Error, Debug, PartialEq)]
 pub enum ScalarError {
     #[error("invalid input lenght: expected {expected}, received {received}")]
     InvalidInputLenght { expected: usize, received: usize },
@@ -22,7 +22,7 @@ pub enum ScalarError {
     NonCanonicalInput,
 }
 
-#[derive(thiserror::Error, Debug)]
+#[derive(thiserror::Error, Debug, PartialEq)]
 pub enum BlsError {
     #[error("empty message")]
     EmptyMessage,

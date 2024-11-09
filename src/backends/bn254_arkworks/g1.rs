@@ -40,7 +40,14 @@ impl Affine for G1Affine {
     }
 
     fn deserialize(bytes: &[u8]) -> Result<Self, PointError> {
-        let mut bytes = bytes.to_vec();
+        let mut bytes: [u8; bn254::POINT_SIZE_G1] =
+            bytes
+                .try_into()
+                .map_err(|_| PointError::InvalidInputLenght {
+                    expected: bn254::POINT_SIZE_G1,
+                    received: bytes.len(),
+                })?;
+
         bytes[..bn254::POINT_SIZE_G1 / 2].reverse();
         bytes[bn254::POINT_SIZE_G1 / 2..].reverse();
 
@@ -84,7 +91,14 @@ impl Projective for G1Projective {
     }
 
     fn deserialize(bytes: &[u8]) -> Result<Self, PointError> {
-        let mut bytes = bytes.to_vec();
+        let mut bytes: [u8; bn254::POINT_SIZE_G1] =
+            bytes
+                .try_into()
+                .map_err(|_| PointError::InvalidInputLenght {
+                    expected: bn254::POINT_SIZE_G1,
+                    received: bytes.len(),
+                })?;
+
         bytes[..bn254::POINT_SIZE_G1 / 2].reverse();
         bytes[bn254::POINT_SIZE_G1 / 2..].reverse();
 
@@ -226,12 +240,23 @@ mod tests {
     #[test]
     fn serialization_check() {
         // Data from https://api.drand.sh/04f1e9062b8a81f848fded9c12306733282b2727ecced50032187751166ec8c3/public/513
-        let bytes=hex::decode("06ded8c05af23042a0caf9b404c6140f9ec64adbaf82f04d5c37153e8412ed580f827c7d5ac7d02ca0bbd989d07594729bdcde7d6dc1001191c59dc9033d31b2").unwrap();
+        let mut bytes=hex::decode("06ded8c05af23042a0caf9b404c6140f9ec64adbaf82f04d5c37153e8412ed580f827c7d5ac7d02ca0bbd989d07594729bdcde7d6dc1001191c59dc9033d31b2").unwrap();
 
         let affine_point = <G1Affine as Affine>::deserialize(&bytes).unwrap();
         let projective_point = <G1Projective as Projective>::deserialize(&bytes).unwrap();
 
         assert_eq!(affine_point.serialize().unwrap(), bytes);
-        assert_eq!(projective_point.serialize().unwrap(), bytes)
+        assert_eq!(projective_point.serialize().unwrap(), bytes);
+
+        // invalid size
+        bytes.push(1);
+
+        assert_eq!(
+            <G1Affine as Affine>::deserialize(&bytes),
+            Err(PointError::InvalidInputLenght {
+                expected: bn254::POINT_SIZE_G1,
+                received: bn254::POINT_SIZE_G1 + 1,
+            })
+        )
     }
 }
