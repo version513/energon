@@ -14,11 +14,18 @@ use sha3::Keccak256;
 use std::ops::BitAnd;
 use std::ops::BitXor;
 
+/// Implementation straight Shallue and van de Woestijne method of hashing an arbitrary string to a point on bn254 curve.
+/// ref: https://www.ietf.org/archive/id/draft-irtf-cfrg-hash-to-curve-16.html#straightline-svdw.
+/// NOTE: Keccak-256 hasher used for compatibility with EVM networks.
+
 /// Length of the requested output `expand_message_xmd_keccak256` in bytes
 const LEN_IN_BYTES: usize = 96;
 
 /// Input block size of keccak256 in bytes
 const S_IN_BYTES: usize = 136;
+
+/// Output size of keccak256 in bytes
+const H_OUT: usize = 32;
 
 /// step 3: DST_prime = DST || I2OSP(len(DST), 1)
 /// I2OSP ref: https://www.rfc-editor.org/rfc/rfc8017.html#section-4.1
@@ -49,7 +56,7 @@ struct SvdW {
     c4: Fq,
 }
 
-/// ref: https://github.com/ConsenSys/gnark-crypto/blob/master/ecc/bn254/hash_to_g1.go
+/// Constanst values from https://github.com/ConsenSys/gnark-crypto/blob/master/ecc/bn254/hash_to_g1.go#L38-L42
 const SVDW: SvdW = SvdW {
     // A = 0
     // B = 3,
@@ -91,9 +98,8 @@ const SVDW: SvdW = SvdW {
     ])),
 };
 
-/// Implementation of expand_message_xmd ref: https://www.rfc-editor.org/rfc/rfc9380.html#name-expand_message_xmd
-/// for hash function: Keccak-256 with precomputed parameters.
-fn expand_message_xmd_keccak256(msg: &[u8]) -> Vec<u8> {
+/// Implementation of expand_message_xmd, ref: https://www.rfc-editor.org/rfc/rfc9380.html#name-expand_message_xmd
+fn expand_message_xmd_keccak256(msg: &[u8]) -> [u8; LEN_IN_BYTES] {
     // step 1: ell = ceil(len_in_bytes / b_in_bytes)
     // step 2: ABORT if ell > 255 or len_in_bytes > 65535 or len(DST) > 255
     // step 3: DST_prime = DST || I2OSP(len(DST), 1)
@@ -118,14 +124,23 @@ fn expand_message_xmd_keccak256(msg: &[u8]) -> Vec<u8> {
 
     // steps 9,10 unrolled:
     //   for i in (2, ..., ell):  b_i = H(strxor(b_0, b_(i - 1)) || I2OSP(i, 1) || DST_prime)
-    let strxor_i2: Vec<u8> = b_0.iter().zip(&b_1).map(|(&b, &i)| b.bitxor(i)).collect();
+    let mut strxor_i2 = [0u8; H_OUT];
+    let mut strxor_i3 = [0u8; H_OUT];
+
+    // i = 2
+    for i in 0..H_OUT {
+        strxor_i2[i] = b_0[i].bitxor(b_1[i]);
+    }
     let b_2 = Keccak256::default()
         .chain(strxor_i2)
         .chain(I2OSP_2_1)
         .chain(DST_PRIME)
         .finalize_fixed();
 
-    let strxor_i3: Vec<u8> = b_0.iter().zip(&b_2).map(|(&b, &i)| b.bitxor(i)).collect();
+    // i = 3
+    for i in 0..H_OUT {
+        strxor_i3[i] = b_0[i].bitxor(b_2[i]);
+    }
     let b_3 = Keccak256::default()
         .chain(strxor_i3)
         .chain(I2OSP_3_1)
@@ -133,16 +148,16 @@ fn expand_message_xmd_keccak256(msg: &[u8]) -> Vec<u8> {
         .finalize_fixed();
 
     // step 11: uniform_bytes = b_1 || ... || b_ell
-    let mut out = Vec::with_capacity(LEN_IN_BYTES);
-    out.extend(b_1);
-    out.extend(b_2);
-    out.extend(b_3);
+    let mut out = [0u8; LEN_IN_BYTES];
+    out[0..H_OUT].copy_from_slice(&b_1);
+    out[H_OUT..H_OUT * 2].copy_from_slice(&b_2);
+    out[H_OUT * 2..H_OUT * 3].copy_from_slice(&b_3);
 
     out
 }
 
 impl SvdW {
-    /// A straight-line implementation of the Shallue and van de Woestijne method,
+    /// Straight SW method mapping to curve on G1, returns unchecked point,
     /// ref: https://www.ietf.org/archive/id/draft-irtf-cfrg-hash-to-curve-16.html#name-shallue-van-de-woestijne-met
     fn map_to_curve_g1_unchecked(&self, u: Fq) -> G1Affine {
         let tv1 = u * u;
@@ -202,6 +217,7 @@ impl SvdW {
         // step 35:   y = CMOV(-y, y, e3)
         let mut u_b = Vec::with_capacity(32);
         let mut y_b = Vec::with_capacity(32);
+
         <Fq as CanonicalSerialize>::serialize_compressed(&u, &mut u_b).expect("should not fail");
         <Fq as CanonicalSerialize>::serialize_compressed(&y, &mut y_b).expect("should not fail");
 
@@ -219,25 +235,27 @@ impl SvdW {
 pub fn map_to_curve_svdw(msg: &[u8]) -> G1Projective {
     let exp_msg = expand_message_xmd_keccak256(msg);
 
-    let el0 = <Fq as PrimeField>::from_be_bytes_mod_order(&exp_msg[..LEN_IN_BYTES / 2]);
-    let el1 = <Fq as PrimeField>::from_be_bytes_mod_order(&exp_msg[LEN_IN_BYTES / 2..]);
+    let u0 = <Fq as PrimeField>::from_be_bytes_mod_order(&exp_msg[..48]);
+    let u1 = <Fq as PrimeField>::from_be_bytes_mod_order(&exp_msg[48..]);
 
-    let a = G1Affine::from(SVDW.map_to_curve_g1_unchecked(el0));
-    let b = G1Affine::from(SVDW.map_to_curve_g1_unchecked(el1));
+    let q0 = G1Affine::from(SVDW.map_to_curve_g1_unchecked(u0));
+    let q1 = G1Affine::from(SVDW.map_to_curve_g1_unchecked(u1));
 
-    a + b
+    q0 + q1
 }
 
-/// Only for readability purpose
+/// This macro exists only for readability purpose
 macro_rules! dst_prime {
     ($arr:expr) => {{
         let mut result = [0; $arr.len() + 1];
         let mut i = 0;
 
+        // DST
         while i < $arr.len() {
             result[i] = $arr[i];
             i += 1;
         }
+        // I2OSP(len(DST), 1) = 43
         result[i] = $arr.len() as u8;
 
         result

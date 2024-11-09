@@ -40,6 +40,7 @@ optional = false
 [features]
 bls12381_arkworks = []
 bls12381_blstrs = []
+bn254_arkworks = []
 
 [profile.release]
 lto = true
