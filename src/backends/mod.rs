@@ -21,6 +21,19 @@ mod bls12381_arkworks {
     super::impl_groups!(bls12381);
 }
 
+#[cfg(feature = "bn254_arkworks")]
+mod bn254_arkworks {
+    mod g1;
+    mod g2;
+    mod hash_to_curve_on_g1;
+    mod scalar;
+    #[cfg(test)]
+    mod test_vectors;
+
+    use crate::curves::bn254;
+    super::impl_groups!(bn254);
+}
+
 macro_rules! impl_groups {
     ($curve:ident) => {
         use crate::traits::Group;
