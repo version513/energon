@@ -1,3 +1,6 @@
+pub mod schemes;
+pub mod traits;
+
 use crate::cyber::error::EciesError;
 use crate::cyber::error::SchnorrError;
 use crate::cyber::error::TBlsError;

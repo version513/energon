@@ -1,7 +1,14 @@
 // TODO: add error asserts
 
+//! This module includes full list of supported drand schemes,
+//! to execute tests the backends need to be specified, valid options are:
+//!    cargo test --features  bls12381_blstrs,bn254_arkworks
+//! or
+//!    cargo test --features  bls12381_arkworks,bn254_arkworks
+
 #[cfg(test)]
 mod tests {
+
     use crate::traits::Affine;
     use crate::traits::PairingCurve;
     use crate::traits::ScalarField;
@@ -13,11 +20,13 @@ mod tests {
     use crate::cyber::tbls;
     use crate::cyber::tbls::SigShare;
 
-    use crate::schemes::drand::BeaconDigest;
-    use crate::schemes::drand::DefaultScheme;
-    use crate::schemes::drand::DrandScheme;
-    use crate::schemes::drand::SchortSigScheme;
-    use crate::schemes::drand::UnchainedScheme;
+    use crate::drand::traits::BeaconDigest;
+    use crate::drand::traits::DrandScheme;
+
+    use crate::drand::schemes::BN254UnchainedOnG1Scheme;
+    use crate::drand::schemes::DefaultScheme;
+    use crate::drand::schemes::SigsOnG1Scheme;
+    use crate::drand::schemes::UnchainedScheme;
 
     fn ecies_encrypt_decrypt<S: Scheme>() {
         let private = S::Scalar::random();
@@ -34,7 +43,8 @@ mod tests {
         for _ in 0..5 {
             ecies_encrypt_decrypt::<DefaultScheme>();
             ecies_encrypt_decrypt::<UnchainedScheme>();
-            ecies_encrypt_decrypt::<SchortSigScheme>();
+            ecies_encrypt_decrypt::<SigsOnG1Scheme>();
+            ecies_encrypt_decrypt::<BN254UnchainedOnG1Scheme>();
         }
     }
 
@@ -51,7 +61,8 @@ mod tests {
         for _ in 0..5 {
             schnorr_sign_verify::<DefaultScheme>();
             schnorr_sign_verify::<UnchainedScheme>();
-            schnorr_sign_verify::<SchortSigScheme>();
+            schnorr_sign_verify::<SigsOnG1Scheme>();
+            schnorr_sign_verify::<BN254UnchainedOnG1Scheme>();
         }
     }
 
@@ -75,7 +86,8 @@ mod tests {
         match b.scheme {
             DefaultScheme::ID => verify_beacon::<DefaultScheme>(b),
             UnchainedScheme::ID => verify_beacon::<UnchainedScheme>(b),
-            SchortSigScheme::ID => verify_beacon::<SchortSigScheme>(b),
+            SigsOnG1Scheme::ID => verify_beacon::<SigsOnG1Scheme>(b),
+            BN254UnchainedOnG1Scheme::ID => verify_beacon::<BN254UnchainedOnG1Scheme>(b),
             _ => panic!(),
         }
     }
@@ -105,6 +117,28 @@ mod tests {
                 sig:      "af7eac5897b72401c0f248a26b612c5ef68e0ff830b4d78927988c89b5db3e997bfcdb7c24cb19f549830cd02cb854a1143fd53a1d4e0713ded471260869439060d170a77187eb6371742840e43eccfa225657c4cc2d9619f7c3d680470c9743",
                 prev_sig: ""
             },
+             Beacon{
+                key:      "00e3e43df8fcc6a8e57a419a72cee58dc97ad27b2cd17db52ca6e173fe2962971d9d20260c7006980bb49ce8a152bb81e43862f0b6a2c49c3a19b457c2892b7302eb4c1d3ebefde8b9eefeabcdc2d8dcef925f270a345c298a6c31a2df23bd4f1319c6bb3b5376e85f1e0ee12359ecc28928593163c4df2d0b9c6d3505e2c02f",
+                scheme:   "bls-bn254-unchained-on-g1",
+                round:     1,
+                sig:      "256867706c495afda16143b5cb7013dc582ee698a096220bb2a7a12e9091603427a95923355cf492d540e4d428e949e46e4e293165f4f30b8b12c51fae591e37",
+                prev_sig: ""
+            },
+            Beacon{
+                key:      "047033cd6e8a37849271c7a2b624176ded162fa8d8f309610f0d32cb1b4e647124a1d10d86e51d268e5927b12a772997c47bc39396ef44daf73e29d246b9f56c210e4bb108f94165a6d8005fa82f3265bfde96289bc2fcca42c643997693aedf2e75abeb76348f0f7f96a02bbc7c9cc68aba524008b7b20e9c27353589297096",
+                scheme:   "bls-bn254-unchained-on-g1",
+                round:     16,
+                sig:      "0367ff3a4ae82eb060decfe4d79549d07dbbf490e6c0d800ffe1e5a4edca03af231486e2358564a5c34be1a010bb8afc84e8d347fdf27807e2e987bf430cc222",
+                prev_sig: ""
+            },
+            Beacon{
+                key:      "2a8fde29149e45235ddf09a79873f9e830294decd247722ccbf0552c15d1c5231550c146413b9326b9c4f425d16962964e458211c1e4c86f70bd354fa3fbf1d417fcf10dd2edbc8e5f95f27bb975ada01d9625033051e272085e3d25244d3dec19bf704f8c41e0b8dc56e36b6b0ae624448e46f511c4da2a95e5e32c3e270ab8",
+                scheme:   "bls-bn254-unchained-on-g1",
+                round:     5,
+                sig:      "27014bdeb181aac8afe771f67d6c168c46e5a184b6a62cd4c2a155650a992eda2df062eb8aaa87e2712d71bf64e66ea8cf0845b4cfbf4151ba595ae7bce72555",
+                prev_sig: ""
+            },
+
             // ref: https://github.com/randa-mu/drand-client-rs/blob/master/src/verify.rs#L510-L515
             Beacon{
                 key:      "83cf0f2896adee7eb8b5f01fcad3912212c437e0073e911fb90022d3e760183c8c4b450b6a0a6c3ac6a5776a2d1064510d1fec758c921cc22b0e17e63aaf4bcb5ed66304de9cf809bd274ca73bab4af5a6e9c76a4bc09e76eae8991ef5ece45a",

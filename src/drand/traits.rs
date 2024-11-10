@@ -1,4 +1,3 @@
-use crate::traits::Group;
 use crate::traits::PairingCurve;
 use crate::traits::Scheme;
 
@@ -11,6 +10,8 @@ use crate::cyber::tbls::SigShare;
 
 use crate::points::KeyPoint;
 use crate::points::SigPoint;
+
+use super::SchemeError;
 
 pub trait DrandScheme: Scheme + 'static + Sized + PartialEq {
     const ID: &'static str;
@@ -75,92 +76,7 @@ pub trait DrandScheme: Scheme + 'static + Sized + PartialEq {
     }
 }
 
-pub struct Chained;
-pub struct Unchained;
-
-use sha2::Digest;
-use sha2::Sha256;
-
 pub trait BeaconDigest<S: DrandScheme> {
     fn digest(prev_sig: &[u8], round: u64) -> Vec<u8>;
     fn is_chained() -> bool;
-}
-
-impl<S: DrandScheme> BeaconDigest<S> for Chained {
-    fn digest(prev_sig: &[u8], round: u64) -> Vec<u8> {
-        let mut h = Sha256::new();
-        h.update(prev_sig);
-        h.update(round.to_be_bytes());
-        h.finalize().to_vec()
-    }
-
-    fn is_chained() -> bool {
-        true
-    }
-}
-
-impl<S: DrandScheme> BeaconDigest<S> for Unchained {
-    fn digest(_prev_sig: &[u8], round: u64) -> Vec<u8> {
-        let mut h = Sha256::new();
-        h.update(round.to_be_bytes());
-        h.finalize().to_vec()
-    }
-
-    fn is_chained() -> bool {
-        false
-    }
-}
-
-use super::error::SchemeError;
-use crate::curves::bls12381::G1;
-use crate::curves::bls12381::G2;
-
-type Scalar = <G1 as Group>::Scalar;
-
-pub const DEFAULT_SCHEME: &str = "pedersen-bls-chained";
-
-#[derive(Debug, PartialEq)]
-pub struct DefaultScheme;
-
-impl DrandScheme for DefaultScheme {
-    const ID: &'static str = DEFAULT_SCHEME;
-    type Beacon = Chained;
-}
-
-impl Scheme for DefaultScheme {
-    type Key = G1;
-    type Sig = G2;
-    type Scalar = Scalar;
-}
-
-pub const UNCHAINED_SCHEME: &str = "pedersen-bls-unchained";
-
-#[derive(Debug, PartialEq)]
-pub struct UnchainedScheme;
-
-impl DrandScheme for UnchainedScheme {
-    const ID: &'static str = UNCHAINED_SCHEME;
-    type Beacon = Unchained;
-}
-
-impl Scheme for UnchainedScheme {
-    type Key = G1;
-    type Sig = G2;
-    type Scalar = Scalar;
-}
-
-pub const SHORT_SIG_SCHEME: &str = "bls-unchained-g1-rfc9380";
-
-#[derive(Debug, PartialEq)]
-pub struct SchortSigScheme;
-
-impl Scheme for SchortSigScheme {
-    type Key = G2;
-    type Sig = G1;
-    type Scalar = Scalar;
-}
-
-impl DrandScheme for SchortSigScheme {
-    const ID: &'static str = SHORT_SIG_SCHEME;
-    type Beacon = Unchained;
 }

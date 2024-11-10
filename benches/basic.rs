@@ -4,7 +4,7 @@ use criterion::black_box;
 use criterion::criterion_group;
 use criterion::criterion_main;
 use criterion::Criterion;
-use energon::schemes::drand::DefaultScheme;
+use energon::drand::schemes::DefaultScheme;
 
 pub fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("bls_blstrs", |b| b.iter(|| black_box(bls_blstrs())));
@@ -64,7 +64,7 @@ mod api_overhead_blstrs {
         assert!(is_valid)
     }
 
-    use energon::schemes::drand::DrandScheme as Scheme;
+    use energon::drand::traits::DrandScheme as Scheme;
     use energon::traits::ScalarField;
 
     pub fn bls_api<S: Scheme>() {

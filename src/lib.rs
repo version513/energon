@@ -2,7 +2,7 @@ mod backends;
 pub mod curves;
 pub mod cyber;
 pub mod examples;
-pub mod schemes;
+pub mod drand;
 pub mod traits;
 
 pub mod points {
