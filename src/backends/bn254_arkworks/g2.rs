@@ -12,7 +12,7 @@ use ark_bn254 as ark_curve;
 use ark_ec::pairing::Pairing;
 use ark_ec::AffineRepr;
 use ark_ec::CurveGroup;
-use ark_ec::Group as _;
+use ark_ec::PrimeGroup;
 use ark_serialize::CanonicalDeserialize;
 use ark_serialize::CanonicalSerialize;
 

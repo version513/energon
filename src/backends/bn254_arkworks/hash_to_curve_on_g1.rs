@@ -273,8 +273,6 @@ mod tests {
 
     #[test]
     fn test_map_to_curve_g1() {
-        use ark_ec::AffineRepr;
-
         let data = test_vectors::map_to_g1_point_t();
         for i in data.iter() {
             let u = fq_from_int(i.U);
@@ -282,8 +280,8 @@ mod tests {
             let ref_y = fq_from_int(i.RefY);
 
             let point = SVDW.map_to_curve_g1_unchecked(u);
-            let x: Fq = (*point.x().unwrap()).into();
-            let y: Fq = (*point.y().unwrap()).into();
+            let x: Fq = point.x.into();
+            let y: Fq = point.y.into();
 
             assert!(point.is_on_curve());
             assert!(point.is_in_correct_subgroup_assuming_on_curve());

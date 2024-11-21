@@ -15,7 +15,7 @@ use ark_ec::hashing::HashToCurve;
 use ark_ec::pairing::Pairing;
 use ark_ec::AffineRepr;
 use ark_ec::CurveGroup;
-use ark_ec::Group as _;
+use ark_ec::PrimeGroup;
 use ark_ff::field_hashers::DefaultFieldHasher;
 use ark_serialize::CanonicalDeserialize;
 use ark_serialize::CanonicalSerialize;
