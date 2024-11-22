@@ -14,11 +14,11 @@ mod tests {
     use crate::traits::ScalarField;
     use crate::traits::Scheme;
 
-    use crate::cyber::ecies;
-    use crate::cyber::poly::PubPoly;
-    use crate::cyber::schnorr;
-    use crate::cyber::tbls;
-    use crate::cyber::tbls::SigShare;
+    use crate::kyber::ecies;
+    use crate::kyber::poly::PubPoly;
+    use crate::kyber::schnorr;
+    use crate::kyber::tbls;
+    use crate::kyber::tbls::SigShare;
 
     use crate::drand::traits::BeaconDigest;
     use crate::drand::traits::DrandScheme;

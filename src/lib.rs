@@ -1,8 +1,8 @@
 mod backends;
 pub mod curves;
-pub mod cyber;
-pub mod examples;
 pub mod drand;
+pub mod examples;
+pub mod kyber;
 pub mod traits;
 
 pub mod points {

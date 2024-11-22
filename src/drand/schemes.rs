@@ -6,6 +6,9 @@ use crate::curves::bn254;
 use crate::traits::Group;
 use crate::traits::Scheme;
 
+use crypto_common::typenum::U32;
+use crypto_common::OutputSizeUser;
+
 use sha2::Digest;
 use sha2::Sha256;
 use sha3::Keccak256;
@@ -104,12 +107,16 @@ pub struct Unchained<D: Digest> {
     _marker: std::marker::PhantomData<D>,
 }
 
-impl<S: DrandScheme, D: Digest> BeaconDigest<S> for Chained<D> {
-    fn digest(prev_sig: &[u8], round: u64) -> Vec<u8> {
+impl<S, D> BeaconDigest<S> for Chained<D> 
+where
+    S: DrandScheme,
+    D: Digest + OutputSizeUser<OutputSize = U32>
+{
+    fn digest(prev_sig: &[u8], round: u64) -> [u8; 32] {
         let mut h = D::new();
         h.update(prev_sig);
         h.update(round.to_be_bytes());
-        h.finalize().to_vec()
+        h.finalize().into()     
     }
 
     fn is_chained() -> bool {
@@ -117,11 +124,15 @@ impl<S: DrandScheme, D: Digest> BeaconDigest<S> for Chained<D> {
     }
 }
 
-impl<S: DrandScheme, D: Digest> BeaconDigest<S> for Unchained<D> {
-    fn digest(_prev_sig: &[u8], round: u64) -> Vec<u8> {
+impl<S, D> BeaconDigest<S> for Unchained<D> 
+where
+    S: DrandScheme,
+    D: Digest + OutputSizeUser<OutputSize = U32>
+{
+    fn digest(_prev_sig: &[u8], round: u64) -> [u8; 32] {
         let mut h = D::new();
         h.update(round.to_be_bytes());
-        h.finalize().to_vec()
+        h.finalize().into()
     }
 
     fn is_chained() -> bool {

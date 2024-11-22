@@ -1,10 +1,10 @@
 # Energon
-Energon is a traits contract that resolves the power of cryptographic libraries (inputs) into a single generalized API (output). Inspired by [`Cyber`](https://github.com/drand/kyber)
+Energon is a traits contract that resolves the power of cryptographic libraries (inputs) into a single generalized API (output). Inspired by [`Kyber`](https://github.com/drand/kyber)
 
 
 ## Concept
 - Inputs specified at compile time via feature flag(s) may be selected based on supported architectures, performance, or other considerations.
-- Output need to be combined into a Scheme trait to perform static dispatch, e.g. [`Drand Scheme`](/src/schemes/drand.rs#L15)
+- Output need to be combined into a Scheme trait to perform static dispatch, e.g. [`Drand Scheme`](/src/drand/traits.rs#L16)
 
 ```
 ├── backends

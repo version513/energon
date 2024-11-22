@@ -1,9 +1,9 @@
 pub mod schemes;
 pub mod traits;
 
-use crate::cyber::error::EciesError;
-use crate::cyber::error::SchnorrError;
-use crate::cyber::error::TBlsError;
+use crate::kyber::error::EciesError;
+use crate::kyber::error::SchnorrError;
+use crate::kyber::error::TBlsError;
 
 use crate::backends::BlsError;
 

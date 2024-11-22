@@ -1,12 +1,12 @@
 use crate::traits::PairingCurve;
 use crate::traits::Scheme;
 
-use crate::cyber::ecies;
-use crate::cyber::poly::PriShare;
-use crate::cyber::poly::PubPoly;
-use crate::cyber::schnorr;
-use crate::cyber::tbls;
-use crate::cyber::tbls::SigShare;
+use crate::kyber::ecies;
+use crate::kyber::poly::PriShare;
+use crate::kyber::poly::PubPoly;
+use crate::kyber::schnorr;
+use crate::kyber::tbls;
+use crate::kyber::tbls::SigShare;
 
 use crate::points::KeyPoint;
 use crate::points::SigPoint;
@@ -77,6 +77,6 @@ pub trait DrandScheme: Scheme + 'static + Sized + PartialEq {
 }
 
 pub trait BeaconDigest<S: DrandScheme> {
-    fn digest(prev_sig: &[u8], round: u64) -> Vec<u8>;
+    fn digest(prev_sig: &[u8], round: u64) -> [u8; 32];
     fn is_chained() -> bool;
 }
