@@ -1,4 +1,4 @@
-mod backends;
+pub mod backends;
 pub mod curves;
 pub mod drand;
 pub mod examples;

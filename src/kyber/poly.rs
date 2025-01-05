@@ -4,7 +4,7 @@ use crate::traits::Projective;
 use crate::traits::ScalarField;
 use crate::traits::Scheme;
 
-use crate::backends::PointError;
+use crate::backends::error::PointError;
 use crate::points::KeyPoint;
 
 pub struct PriShare<S: Scheme> {

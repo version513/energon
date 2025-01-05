@@ -1,6 +1,6 @@
-use crate::backends::BlsError;
-use crate::backends::PointError;
-use crate::backends::ScalarError;
+use crate::backends::error::BlsError;
+use crate::backends::error::PointError;
+use crate::backends::error::ScalarError;
 
 use std::fmt::Debug;
 use std::fmt::Display;

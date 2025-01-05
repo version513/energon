@@ -5,7 +5,7 @@ use crate::kyber::error::EciesError;
 use crate::kyber::error::SchnorrError;
 use crate::kyber::error::TBlsError;
 
-use crate::backends::BlsError;
+use crate::backends::error::BlsError;
 
 #[derive(thiserror::Error, Debug)]
 pub enum SchemeError {
