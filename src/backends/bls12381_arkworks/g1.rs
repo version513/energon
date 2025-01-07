@@ -27,7 +27,7 @@ use std::ops::MulAssign;
 
 use sha2::Sha256;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct G1Affine(pub(super) ark_curve::G1Affine);
 
 impl Affine for G1Affine {

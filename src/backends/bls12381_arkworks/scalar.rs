@@ -20,7 +20,7 @@ use std::ops::SubAssign;
 use rand_chacha::rand_core::SeedableRng;
 use rand_chacha::ChaChaRng;
 
-#[derive(Clone, Copy, PartialEq, Debug)]
+#[derive(Clone, Copy, PartialEq, Debug, Default)]
 pub struct Scalar(pub(super) Fr);
 
 impl ScalarField for Scalar {

@@ -30,7 +30,7 @@ pub fn verify<S: Scheme>(
     Ok(())
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct SigShare<S: Scheme> {
     i: u32,
     v: <S::Sig as Group>::Affine,

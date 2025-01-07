@@ -14,7 +14,7 @@ use group::ff::Field;
 use rand_chacha::rand_core::SeedableRng;
 use rand_chacha::ChaChaRng;
 
-#[derive(Clone, Copy, PartialEq, Debug)]
+#[derive(Clone, Copy, PartialEq, Debug, Default)]
 pub struct Scalar(pub(super) blstrs::Scalar);
 
 impl ScalarField for Scalar {

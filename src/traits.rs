@@ -38,7 +38,8 @@ pub trait Group: Sized {
 }
 
 pub trait ScalarField:
-    Sync
+    Default
+    + Sync
     + Send
     + Sized
     + Debug
@@ -71,7 +72,7 @@ pub trait ScalarField:
     }
 }
 
-pub trait Affine: Sync + Send + Sized + PartialEq + Debug + Display {
+pub trait Affine: Default + Sync + Send + Sized + PartialEq + Debug + Display {
     fn generator() -> Self;
     fn identity() -> Self;
     fn is_on_curve(&self) -> bool;

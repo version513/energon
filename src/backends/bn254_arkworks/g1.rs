@@ -19,7 +19,7 @@ use std::ops::AddAssign;
 use std::ops::Mul;
 use std::ops::MulAssign;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct G1Affine(pub(super) ark_curve::G1Affine);
 
 impl Affine for G1Affine {

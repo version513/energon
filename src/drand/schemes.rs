@@ -36,7 +36,7 @@ macro_rules! impl_scheme {
     // Digest function for beacon
     beacon_hasher = $beacon_hasher:ident ) => {
             
-        #[derive(Debug, PartialEq)]
+        #[derive(Debug, Default, PartialEq)]
         pub struct $scheme_name;
 
         impl DrandScheme for $scheme_name {

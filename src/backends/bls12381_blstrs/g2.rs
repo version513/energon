@@ -17,7 +17,7 @@ use std::ops::Mul;
 use std::ops::MulAssign;
 use std::ops::Neg;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct G2Affine(pub(super) blstrs::G2Affine);
 
 impl Affine for G2Affine {

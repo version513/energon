@@ -7,12 +7,13 @@ use crate::traits::Scheme;
 use crate::backends::error::PointError;
 use crate::points::KeyPoint;
 
+#[derive(Default)]
 pub struct PriShare<S: Scheme> {
     pub i: u32,
     pub v: S::Scalar,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct PriPoly<S: Scheme> {
     coeffs: Vec<S::Scalar>,
 }
@@ -55,11 +56,12 @@ impl<S: Scheme> PriPoly<S> {
     }
 }
 
+#[derive(Default)]
 pub struct PubPoly<S: Scheme> {
     pub commits: Vec<KeyPoint<S>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct PubShare<S: Scheme> {
     pub i: u32,
     pub v: KeyPoint<S>,
