@@ -1,6 +1,7 @@
 pub mod schemes;
 pub mod traits;
 
+use crate::backends::error::PointError;
 use crate::kyber::error::EciesError;
 use crate::kyber::error::SchnorrError;
 use crate::kyber::error::TBlsError;
@@ -17,4 +18,8 @@ pub enum SchemeError {
     Bls(#[from] BlsError),
     #[error("{0}")]
     TBls(#[from] TBlsError),
+    #[error(transparent)]
+    Point(#[from] PointError),
+    #[error("unknown scheme")]
+    UnknownScheme,
 }

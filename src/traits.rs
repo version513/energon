@@ -79,11 +79,11 @@ pub trait Affine: Default + Sync + Send + Sized + PartialEq + Debug + Display {
     fn is_identity(&self) -> bool;
     fn serialize(&self) -> Result<Vec<u8>, PointError>;
     fn deserialize(bytes: &[u8]) -> Result<Self, PointError>;
-    fn hash(&self) -> Result<Vec<u8>, PointError> {
+    fn hash(&self) -> Result<[u8; 32], PointError> {
         let mut hasher = Blake2b256::new();
         hasher.update(self.serialize()?);
 
-        Ok(hasher.finalize().to_vec())
+        Ok(hasher.finalize().into())
     }
 }
 
@@ -92,11 +92,11 @@ pub trait Projective: Sized + Debug + PartialEq + for<'a> AddAssign<&'a Self> {
     fn generator() -> Self;
     fn serialize(&self) -> Result<Vec<u8>, PointError>;
     fn deserialize(bytes: &[u8]) -> Result<Self, PointError>;
-    fn hash(&self) -> Result<Vec<u8>, PointError> {
+    fn hash(&self) -> Result<[u8; 32], PointError> {
         let mut hasher = Blake2b256::new();
         hasher.update(&self.serialize()?);
 
-        Ok(hasher.finalize().to_vec())
+        Ok(hasher.finalize().into())
     }
 }
 

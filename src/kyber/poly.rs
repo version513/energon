@@ -7,10 +7,24 @@ use crate::traits::Scheme;
 use crate::backends::error::PointError;
 use crate::points::KeyPoint;
 
-#[derive(Default)]
+#[derive(Default, PartialEq)]
 pub struct PriShare<S: Scheme> {
-    pub i: u32,
-    pub v: S::Scalar,
+    index: u32,
+    value: S::Scalar,
+}
+
+impl<S: Scheme> PriShare<S> {
+    pub fn new(index: u32, value: S::Scalar) -> Self {
+        Self { index, value }
+    }
+
+    pub fn index(&self) -> u32 {
+        self.index
+    }
+
+    pub fn value(&self) -> &S::Scalar {
+        &self.value
+    }
 }
 
 #[derive(Debug, Default)]
@@ -28,15 +42,15 @@ impl<S: Scheme> PriPoly<S> {
         Self { coeffs }
     }
 
-    pub fn eval(&self, i: u32) -> PriShare<S> {
-        let xi = S::Scalar::from_u64((1 + i).into());
-        let mut v = S::Scalar::zero();
+    pub fn eval(&self, index: u32) -> PriShare<S> {
+        let xi = S::Scalar::from_u64((1 + index).into());
+        let mut value = S::Scalar::zero();
         for j in (0..self.threshold()).rev() {
-            v *= &xi;
-            v += &self.coeffs[j]
+            value *= &xi;
+            value += &self.coeffs[j]
         }
 
-        PriShare { i, v }
+        PriShare::new(index, value)
     }
 
     pub fn commit(&self) -> PubPoly<S> {

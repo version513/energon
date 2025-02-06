@@ -1,3 +1,4 @@
+use crate::points::SigPoint;
 use crate::traits::Affine;
 use crate::traits::Group;
 use crate::traits::PairingCurve;
@@ -14,9 +15,9 @@ use std::collections::HashMap;
 const INDEX_LEN: usize = 2;
 
 pub fn sign<S: Scheme>(pri_share: &PriShare<S>, msg: &[u8]) -> Result<SigShare<S>, TBlsError> {
-    let v = <S::Key as PairingCurve>::bls_sign(msg, &pri_share.v)?;
+    let value = <S::Key as PairingCurve>::bls_sign(msg, &pri_share.value())?;
 
-    Ok(SigShare { i: pri_share.i, v })
+    Ok(SigShare::new(pri_share.index(), value))
 }
 
 pub fn verify<S: Scheme>(
@@ -24,7 +25,7 @@ pub fn verify<S: Scheme>(
     msg: &[u8],
     sh: &SigShare<S>,
 ) -> Result<(), TBlsError> {
-    let key = public.eval(sh.i).v;
+    let key = public.eval(sh.index()).v;
     <S::Key as PairingCurve>::bls_verify(&key, sh.value(), msg)?;
 
     Ok(())
@@ -32,14 +33,18 @@ pub fn verify<S: Scheme>(
 
 #[derive(Debug, Default)]
 pub struct SigShare<S: Scheme> {
-    i: u32,
-    v: <S::Sig as Group>::Affine,
+    index: u32,
+    value: SigPoint<S>,
 }
 
 impl<S: Scheme> SigShare<S> {
+    pub fn new(index: u32, value: SigPoint<S>) -> Self {
+        Self { index, value }
+    }
+
     pub fn serialize(&self) -> Result<Vec<u8>, TBlsError> {
-        let mut tbls_bytes = (self.i as u16).to_be_bytes().to_vec();
-        let mut bls_bytes = self.v.serialize()?;
+        let mut tbls_bytes = (self.index() as u16).to_be_bytes().to_vec();
+        let mut bls_bytes = self.value().serialize()?;
         tbls_bytes.append(&mut bls_bytes);
 
         Ok(tbls_bytes)
@@ -53,17 +58,18 @@ impl<S: Scheme> SigShare<S> {
                 received: raw.len(),
             });
         }
-        let i = u32::from_be_bytes([0, 0, raw[0], raw[1]]);
-        let v = Affine::deserialize(&raw[2..])?;
-        Ok(Self { i, v })
+        let index = u32::from_be_bytes([0, 0, raw[0], raw[1]]);
+        let value = Affine::deserialize(&raw[2..])?;
+
+        Ok(Self::new(index, value))
     }
 
     pub fn index(&self) -> u32 {
-        self.i
+        self.index
     }
 
     pub fn value(&self) -> &<S::Sig as Group>::Affine {
-        &self.v
+        &self.value
     }
 }
 
