@@ -1,4 +1,4 @@
-use crate::backends::error::ScalarError;
+use super::super::error::BackendsError;
 use crate::curves::bls12381;
 use crate::traits::ScalarField;
 
@@ -43,22 +43,18 @@ impl ScalarField for Scalar {
         }
     }
 
-    fn to_bytes_be(self) -> Result<[u8; Self::SCALAR_SIZE], ScalarError> {
+    fn to_bytes_be(self) -> Result<[u8; Self::SCALAR_SIZE], BackendsError> {
         Ok(self.0.to_bytes_be())
     }
 
-    fn from_bytes_be(bytes: &[u8]) -> Result<Self, ScalarError> {
-        let bytes: [u8; Self::SCALAR_SIZE] =
-            bytes
-                .try_into()
-                .map_err(|_| ScalarError::InvalidInputLenght {
-                    expected: Self::SCALAR_SIZE,
-                    received: bytes.len(),
-                })?;
+    fn from_bytes_be(bytes: &[u8]) -> Result<Self, BackendsError> {
+        let bytes: [u8; Self::SCALAR_SIZE] = bytes
+            .try_into()
+            .map_err(|_| BackendsError::ScalarInputLen)?;
 
         let scalar = blstrs::Scalar::from_bytes_be(&bytes)
             .into_option()
-            .ok_or_else(|| ScalarError::NonCanonicalInput)?;
+            .ok_or_else(|| BackendsError::ScalarDeserialize)?;
 
         Ok(Self(scalar))
     }
@@ -72,12 +68,12 @@ impl ScalarField for Scalar {
         Self(blstrs::Scalar::from(out))
     }
 
-    fn invert(&self) -> Result<Self, ScalarError> {
+    fn invert(&self) -> Result<Self, BackendsError> {
         let scalar = self
             .0
             .invert()
             .into_option()
-            .ok_or_else(|| ScalarError::NonInvertible)?;
+            .ok_or_else(|| BackendsError::ScalarNonInvertable)?;
 
         Ok(Self(scalar))
     }

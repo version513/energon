@@ -1,6 +1,5 @@
+use crate::backends::error::BackendsError;
 use crate::backends::error::BlsError;
-use crate::backends::error::PointError;
-use crate::backends::error::ScalarError;
 
 use std::fmt::Debug;
 use std::fmt::Display;
@@ -57,10 +56,10 @@ pub trait ScalarField:
     fn zero() -> Self;
     fn one() -> Self;
     fn random() -> Self;
-    fn invert(&self) -> Result<Self, ScalarError>;
+    fn invert(&self) -> Result<Self, BackendsError>;
     fn from_u64(val: u64) -> Self;
-    fn to_bytes_be(self) -> Result<[u8; 32], ScalarError>;
-    fn from_bytes_be(bytes: &[u8]) -> Result<Self, ScalarError>;
+    fn to_bytes_be(self) -> Result<[u8; 32], BackendsError>;
+    fn from_bytes_be(bytes: &[u8]) -> Result<Self, BackendsError>;
     fn from_be_bytes_mod_order(bytes: &[u8]) -> Self;
     fn set_bytes(public: &[u8], r: &[u8], msg: &[u8]) -> Self {
         let mut h = sha2::Sha512::new();
@@ -77,9 +76,9 @@ pub trait Affine: Default + Sync + Send + Sized + PartialEq + Debug + Display {
     fn identity() -> Self;
     fn is_on_curve(&self) -> bool;
     fn is_identity(&self) -> bool;
-    fn serialize(&self) -> Result<Vec<u8>, PointError>;
-    fn deserialize(bytes: &[u8]) -> Result<Self, PointError>;
-    fn hash(&self) -> Result<[u8; 32], PointError> {
+    fn serialize(&self) -> Result<Vec<u8>, BackendsError>;
+    fn deserialize(bytes: &[u8]) -> Result<Self, BackendsError>;
+    fn hash(&self) -> Result<[u8; 32], BackendsError> {
         let mut hasher = Blake2b256::new();
         hasher.update(self.serialize()?);
 
@@ -90,9 +89,9 @@ pub trait Affine: Default + Sync + Send + Sized + PartialEq + Debug + Display {
 pub trait Projective: Sized + Debug + PartialEq + for<'a> AddAssign<&'a Self> {
     fn identity() -> Self;
     fn generator() -> Self;
-    fn serialize(&self) -> Result<Vec<u8>, PointError>;
-    fn deserialize(bytes: &[u8]) -> Result<Self, PointError>;
-    fn hash(&self) -> Result<[u8; 32], PointError> {
+    fn serialize(&self) -> Result<Vec<u8>, BackendsError>;
+    fn deserialize(bytes: &[u8]) -> Result<Self, BackendsError>;
+    fn hash(&self) -> Result<[u8; 32], BackendsError> {
         let mut hasher = Blake2b256::new();
         hasher.update(&self.serialize()?);
 

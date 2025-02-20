@@ -1,6 +1,6 @@
+use super::super::error::BackendsError;
+use super::super::error::BlsError;
 use super::scalar::Scalar;
-use crate::backends::error::BlsError;
-use crate::backends::error::PointError;
 use crate::curves::bls12381;
 use crate::traits::Affine;
 use crate::traits::Group;
@@ -35,18 +35,18 @@ impl Affine for G2Affine {
         Self(ark_curve::G2Affine::generator())
     }
 
-    fn serialize(&self) -> Result<Vec<u8>, PointError> {
+    fn serialize(&self) -> Result<Vec<u8>, BackendsError> {
         let mut bytes = Vec::new();
         self.0
             .serialize_compressed(&mut bytes)
-            .map_err(|e| PointError::Serialization(e.to_string()))?;
+            .map_err(|_| BackendsError::PointSerialize)?;
 
         Ok(bytes)
     }
 
-    fn deserialize(bytes: &[u8]) -> Result<Self, PointError> {
+    fn deserialize(bytes: &[u8]) -> Result<Self, BackendsError> {
         let point = CanonicalDeserialize::deserialize_compressed(bytes)
-            .map_err(|e| PointError::Serialization(e.to_string()))?;
+            .map_err(|_| BackendsError::PointDeserialize)?;
 
         Ok(Self(point))
     }
@@ -72,18 +72,18 @@ impl Projective for G2Projective {
         Self(ark_curve::G2Projective::generator())
     }
 
-    fn serialize(&self) -> Result<Vec<u8>, PointError> {
+    fn serialize(&self) -> Result<Vec<u8>, BackendsError> {
         let mut bytes = Vec::new();
         self.0
             .serialize_compressed(&mut bytes)
-            .map_err(|e| PointError::Serialization(e.to_string()))?;
+            .map_err(|_| BackendsError::PointSerialize)?;
 
         Ok(bytes)
     }
 
-    fn deserialize(bytes: &[u8]) -> Result<Self, PointError> {
+    fn deserialize(bytes: &[u8]) -> Result<Self, BackendsError> {
         let point = CanonicalDeserialize::deserialize_compressed(bytes)
-            .map_err(|e| PointError::Serialization(e.to_string()))?;
+            .map_err(|_| BackendsError::PointDeserialize)?;
 
         Ok(Self(point))
     }
@@ -101,44 +101,42 @@ impl PairingCurve for bls12381::G2 {
         sig: &Self::Pair,
         msg: &[u8],
     ) -> Result<(), BlsError> {
+        if msg.is_empty() {
+            return Err(BlsError::VerifyEmptyMessage);
+        }
         let g = <Self as Group>::Affine::generator();
         let hasher = MapToCurveBasedHasher::<
             ark_curve::G1Projective,
             DefaultFieldHasher<Sha256>,
             WBMap<ark_curve::g1::Config>,
         >::new(bls12381::G1::DST)
-        .map_err(|err| BlsError::HashToCurve(err.to_string()))?;
+        .map_err(|_| BlsError::VerifyMapToCurveHasher)?;
 
-        let p = hasher
-            .hash(msg)
-            .map_err(|err| BlsError::HashToCurve(err.to_string()))?;
+        let p = hasher.hash(msg).map_err(|_| BlsError::VerifyMapToCurve)?;
 
         let p1 = Bls12_381::pairing(p, key.0);
         let p2 = Bls12_381::pairing(sig.0, g.0);
         if p1 != p2 {
-            return Err(BlsError::FailedVerification);
+            return Err(BlsError::InvalidSignature);
         }
 
         Ok(())
     }
 
     fn bls_sign(msg: &[u8], sk: &Self::Scalar) -> Result<Self::Pair, BlsError> {
+        if msg.is_empty() {
+            return Err(BlsError::SignEmptyMessage);
+        }
         let hasher = MapToCurveBasedHasher::<
             ark_curve::G1Projective,
             DefaultFieldHasher<Sha256>,
             WBMap<ark_curve::g1::Config>,
         >::new(bls12381::G1::DST)
-        .map_err(|err| BlsError::HashToCurve(err.to_string()))?;
-        let h = hasher
-            .hash(msg)
-            .map_err(|err| BlsError::HashToCurve(err.to_string()))?;
-
+        .map_err(|_| BlsError::SignMapToCurveHasher)?;
+        let h = hasher.hash(msg).map_err(|_| BlsError::SignMapToCurve)?;
         let p = (h * &sk.0).into_affine();
 
-        match p.is_on_curve() && p.is_in_correct_subgroup_assuming_on_curve() && !p.is_zero() {
-            true => Ok(super::g1::G1Affine(p)),
-            false => Err(BlsError::Failed),
-        }
+        Ok(super::g1::G1Affine(p))
     }
 }
 

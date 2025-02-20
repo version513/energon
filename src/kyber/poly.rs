@@ -1,10 +1,10 @@
+use crate::backends::error::BackendsError;
 use crate::traits::Affine;
 use crate::traits::Group;
 use crate::traits::Projective;
 use crate::traits::ScalarField;
 use crate::traits::Scheme;
 
-use crate::backends::error::PointError;
 use crate::points::KeyPoint;
 
 #[derive(Default, PartialEq)]
@@ -102,7 +102,7 @@ impl<S: Scheme> PubPoly<S> {
         self.commits.len()
     }
 
-    pub fn deserialize(raw_commits: &Vec<Vec<u8>>) -> Result<Self, PointError> {
+    pub fn deserialize(raw_commits: &Vec<Vec<u8>>) -> Result<Self, BackendsError> {
         let mut commits = Vec::with_capacity(raw_commits.len());
 
         for c in raw_commits {

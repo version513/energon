@@ -1,6 +1,6 @@
+use super::super::error::BackendsError;
+use super::super::error::BlsError;
 use super::scalar::Scalar;
-use crate::backends::error::BlsError;
-use crate::backends::error::PointError;
 use crate::curves::bls12381;
 use crate::traits::Affine;
 use crate::traits::Group;
@@ -25,22 +25,17 @@ impl Affine for G1Affine {
         Self(blstrs::G1Affine::generator())
     }
 
-    fn serialize(&self) -> Result<Vec<u8>, PointError> {
+    fn serialize(&self) -> Result<Vec<u8>, BackendsError> {
         Ok(self.0.to_compressed().into())
     }
 
-    fn deserialize(bytes: &[u8]) -> Result<Self, PointError> {
+    fn deserialize(bytes: &[u8]) -> Result<Self, BackendsError> {
         let bytes: &[u8; bls12381::G1::POINT_SIZE] =
-            &bytes
-                .try_into()
-                .map_err(|_| PointError::InvalidInputLenght {
-                    expected: bls12381::G1::POINT_SIZE,
-                    received: bytes.len(),
-                })?;
+            &bytes.try_into().map_err(|_| BackendsError::PointInputLen)?;
 
         let point = blstrs::G1Affine::from_compressed(bytes)
             .into_option()
-            .ok_or_else(|| PointError::NonCanonicalInput)?;
+            .ok_or_else(|| BackendsError::PointDeserialize)?;
 
         Ok(Self(point))
     }
@@ -66,22 +61,17 @@ impl Projective for G1Projective {
         Self(blstrs::G1Projective::generator())
     }
 
-    fn serialize(&self) -> Result<Vec<u8>, PointError> {
+    fn serialize(&self) -> Result<Vec<u8>, BackendsError> {
         Ok(self.0.to_compressed().to_vec())
     }
 
-    fn deserialize(bytes: &[u8]) -> Result<Self, PointError> {
+    fn deserialize(bytes: &[u8]) -> Result<Self, BackendsError> {
         let bytes: &[u8; bls12381::G1::POINT_SIZE] =
-            &bytes
-                .try_into()
-                .map_err(|_| PointError::InvalidInputLenght {
-                    expected: bls12381::G1::POINT_SIZE,
-                    received: bytes.len(),
-                })?;
+            &bytes.try_into().map_err(|_| BackendsError::PointInputLen)?;
 
         let point = blstrs::G1Projective::from_compressed(&bytes)
             .into_option()
-            .ok_or_else(|| PointError::NonCanonicalInput)?;
+            .ok_or_else(|| BackendsError::PointDeserialize)?;
 
         Ok(Self(point))
     }
@@ -96,7 +86,7 @@ impl PairingCurve for bls12381::G1 {
 
     fn bls_sign(msg: &[u8], sk: &Self::Scalar) -> Result<Self::Pair, BlsError> {
         if msg.is_empty() {
-            return Err(BlsError::EmptyMessage);
+            return Err(BlsError::SignEmptyMessage);
         }
         let p = blstrs::G2Projective::hash_to_curve(msg, bls12381::G2::DST, &[]);
         let mut sig = blstrs::G2Affine::default();
@@ -118,7 +108,7 @@ impl PairingCurve for bls12381::G1 {
         msg: &[u8],
     ) -> Result<(), BlsError> {
         if msg.is_empty() {
-            return Err(BlsError::EmptyMessage);
+            return Err(BlsError::VerifyEmptyMessage);
         }
         let msg: blstrs::G2Affine =
             blstrs::G2Projective::hash_to_curve(msg, bls12381::G2::DST, &[]).into();
@@ -132,7 +122,7 @@ impl PairingCurve for bls12381::G1 {
             .unwrap_u8()
             != 1
         {
-            return Err(BlsError::FailedVerification);
+            return Err(BlsError::InvalidSignature);
         }
 
         Ok(())

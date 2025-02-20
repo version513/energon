@@ -1,4 +1,4 @@
-use crate::backends::error::ScalarError;
+use super::super::error::BackendsError;
 use crate::curves::bn254;
 use crate::traits::ScalarField;
 
@@ -39,31 +39,28 @@ impl ScalarField for Scalar {
         Self(<Fr as PrimeField>::from_be_bytes_mod_order(bytes))
     }
 
-    fn to_bytes_be(self) -> Result<[u8; Self::SCALAR_SIZE], ScalarError> {
+    fn to_bytes_be(self) -> Result<[u8; Self::SCALAR_SIZE], BackendsError> {
         let mut bytes = [0; Self::SCALAR_SIZE];
         CanonicalSerialize::serialize_compressed(&self.0, &mut bytes[..])
-            .map_err(|e| ScalarError::Serialization(e.to_string()))?;
+            .map_err(|_| BackendsError::ScalarSerialize)?;
         bytes.reverse();
 
         Ok(bytes)
     }
 
-    fn from_bytes_be(bytes: &[u8]) -> Result<Self, ScalarError> {
-        let mut bytes: [u8; Self::SCALAR_SIZE] =
-            bytes
-                .try_into()
-                .map_err(|_| ScalarError::InvalidInputLenght {
-                    expected: Self::SCALAR_SIZE,
-                    received: bytes.len(),
-                })?;
+    fn from_bytes_be(bytes: &[u8]) -> Result<Self, BackendsError> {
+        let mut bytes: [u8; Self::SCALAR_SIZE] = bytes
+            .try_into()
+            .map_err(|_| BackendsError::ScalarInputLen)?;
         bytes.reverse();
-        let scalar = Fr::from_random_bytes(&bytes).ok_or_else(|| ScalarError::NonCanonicalInput)?;
+        let scalar =
+            Fr::from_random_bytes(&bytes).ok_or_else(|| BackendsError::ScalarDeserialize)?;
 
         Ok(Self(scalar))
     }
 
-    fn invert(&self) -> Result<Self, ScalarError> {
-        let scalar = Field::inverse(&self.0).ok_or_else(|| ScalarError::NonInvertible)?;
+    fn invert(&self) -> Result<Self, BackendsError> {
+        let scalar = Field::inverse(&self.0).ok_or_else(|| BackendsError::ScalarNonInvertable)?;
         Ok(Self(scalar))
     }
 
