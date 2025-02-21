@@ -1,6 +1,6 @@
+use super::super::error::BackendsError;
+use super::super::error::BlsError;
 use super::scalar::Scalar;
-use crate::backends::error::BlsError;
-use crate::backends::error::PointError;
 
 use crate::curves::bn254;
 use crate::traits::Affine;
@@ -29,11 +29,11 @@ impl Affine for G2Affine {
         Self(ark_curve::G2Affine::generator())
     }
 
-    fn serialize(&self) -> Result<Vec<u8>, PointError> {
+    fn serialize(&self) -> Result<Vec<u8>, BackendsError> {
         let mut bytes = Vec::with_capacity(bn254::POINT_SIZE_G2);
         self.0
             .serialize_uncompressed(&mut bytes)
-            .map_err(|e| PointError::Serialization(e.to_string()))?;
+            .map_err(|_| BackendsError::PointSerialize)?;
 
         bytes[..bn254::POINT_SIZE_G2 / 2].reverse();
         bytes[bn254::POINT_SIZE_G2 / 2..].reverse();
@@ -41,20 +41,15 @@ impl Affine for G2Affine {
         Ok(bytes)
     }
 
-    fn deserialize(bytes: &[u8]) -> Result<Self, PointError> {
+    fn deserialize(bytes: &[u8]) -> Result<Self, BackendsError> {
         let mut bytes: [u8; bn254::POINT_SIZE_G2] =
-            bytes
-                .try_into()
-                .map_err(|_| PointError::InvalidInputLenght {
-                    expected: bn254::POINT_SIZE_G2,
-                    received: bytes.len(),
-                })?;
+            bytes.try_into().map_err(|_| BackendsError::PointInputLen)?;
 
         bytes[..bn254::POINT_SIZE_G2 / 2].reverse();
         bytes[bn254::POINT_SIZE_G2 / 2..].reverse();
 
         let point = CanonicalDeserialize::deserialize_uncompressed(bytes.as_slice())
-            .map_err(|e| PointError::Serialization(e.to_string()))?;
+            .map_err(|_| BackendsError::PointDeserialize)?;
 
         Ok(Self(point))
     }
@@ -80,30 +75,25 @@ impl Projective for G2Projective {
         Self(ark_curve::G2Projective::generator())
     }
 
-    fn serialize(&self) -> Result<Vec<u8>, PointError> {
+    fn serialize(&self) -> Result<Vec<u8>, BackendsError> {
         let mut bytes = Vec::with_capacity(bn254::POINT_SIZE_G2);
         self.0
             .serialize_uncompressed(&mut bytes)
-            .map_err(|e| PointError::Serialization(e.to_string()))?;
+            .map_err(|_| BackendsError::PointSerialize)?;
         bytes[..bn254::POINT_SIZE_G2 / 2].reverse();
         bytes[bn254::POINT_SIZE_G2 / 2..].reverse();
 
         Ok(bytes)
     }
 
-    fn deserialize(bytes: &[u8]) -> Result<Self, PointError> {
+    fn deserialize(bytes: &[u8]) -> Result<Self, BackendsError> {
         let mut bytes: [u8; bn254::POINT_SIZE_G2] =
-            bytes
-                .try_into()
-                .map_err(|_| PointError::InvalidInputLenght {
-                    expected: bn254::POINT_SIZE_G2,
-                    received: bytes.len(),
-                })?;
+            bytes.try_into().map_err(|_| BackendsError::PointInputLen)?;
 
         bytes[..bn254::POINT_SIZE_G2 / 2].reverse();
         bytes[bn254::POINT_SIZE_G2 / 2..].reverse();
         let point = CanonicalDeserialize::deserialize_uncompressed(bytes.as_slice())
-            .map_err(|e| PointError::Serialization(e.to_string()))?;
+            .map_err(|_| BackendsError::PointDeserialize)?;
 
         Ok(Self(point))
     }
@@ -121,6 +111,9 @@ impl PairingCurve for bn254::G2 {
         sig: &Self::Pair,
         msg: &[u8],
     ) -> Result<(), BlsError> {
+        if msg.is_empty() {
+            return Err(BlsError::VerifyEmptyMessage)?;
+        }
         let g = <Self as Group>::Affine::generator();
         let sig: ark_ec::bn::G1Prepared<ark_bn254::Config> = sig.0.into();
         let p: ark_ec::bn::G1Prepared<ark_bn254::Config> =
@@ -130,7 +123,7 @@ impl PairingCurve for bn254::G2 {
         let rhs = ark_bn254::Bn254::pairing(p, key.0);
 
         if !lhs.eq(&rhs) {
-            return Err(BlsError::FailedVerification);
+            return Err(BlsError::InvalidSignature);
         }
 
         Ok(())
@@ -140,10 +133,7 @@ impl PairingCurve for bn254::G2 {
         let point = super::hash_to_curve_on_g1::map_to_curve_svdw(msg);
         let p = (point * sk.0).into_affine();
 
-        match p.is_on_curve() && p.is_in_correct_subgroup_assuming_on_curve() && !p.is_zero() {
-            true => Ok(super::g1::G1Affine(p)),
-            false => Err(BlsError::Failed),
-        }
+        Ok(super::g1::G1Affine(p))
     }
 }
 
@@ -271,10 +261,7 @@ mod tests {
 
         assert_eq!(
             <G2Affine as Affine>::deserialize(&bytes),
-            Err(PointError::InvalidInputLenght {
-                expected: bn254::POINT_SIZE_G2,
-                received: bn254::POINT_SIZE_G2 + 1,
-            })
+            Err(BackendsError::PointInputLen)
         )
     }
 }

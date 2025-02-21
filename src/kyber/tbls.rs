@@ -1,3 +1,5 @@
+use crate::backends::error::BlsError;
+use crate::points::SigPoint;
 use crate::traits::Affine;
 use crate::traits::Group;
 use crate::traits::PairingCurve;
@@ -5,7 +7,6 @@ use crate::traits::Projective;
 use crate::traits::ScalarField;
 use crate::traits::Scheme;
 
-use super::error::TBlsError;
 use super::poly::PriShare;
 use super::poly::PubPoly;
 
@@ -13,10 +14,26 @@ use std::collections::HashMap;
 
 const INDEX_LEN: usize = 2;
 
-pub fn sign<S: Scheme>(pri_share: &PriShare<S>, msg: &[u8]) -> Result<SigShare<S>, TBlsError> {
-    let v = <S::Key as PairingCurve>::bls_sign(msg, &pri_share.v)?;
+#[derive(thiserror::Error, Debug)]
+#[error(transparent)]
+pub enum TBlsError {
+    Sign(BlsError),
+    Verify(BlsError),
+    #[error("failed to serialize a share")]
+    SerializeShare,
+    #[error("failed to deserialize a share")]
+    DeserializeShare,
+    #[error("invalid input lenght of a share")]
+    ShareInputLen,
+    #[error("can not recover signature, scalar is non-invertable")]
+    ScalarNonInvertable,
+}
 
-    Ok(SigShare { i: pri_share.i, v })
+pub fn sign<S: Scheme>(pri_share: &PriShare<S>, msg: &[u8]) -> Result<SigShare<S>, TBlsError> {
+    let value = <S::Key as PairingCurve>::bls_sign(msg, &pri_share.value())
+        .map_err(|err| TBlsError::Sign(err))?;
+
+    Ok(SigShare::new(pri_share.index(), value))
 }
 
 pub fn verify<S: Scheme>(
@@ -24,22 +41,29 @@ pub fn verify<S: Scheme>(
     msg: &[u8],
     sh: &SigShare<S>,
 ) -> Result<(), TBlsError> {
-    let key = public.eval(sh.i).v;
-    <S::Key as PairingCurve>::bls_verify(&key, sh.value(), msg)?;
+    let key = public.eval(sh.index()).v;
+    <S::Key as PairingCurve>::bls_verify(&key, sh.value(), msg).map_err(TBlsError::Verify)?;
 
     Ok(())
 }
 
 #[derive(Debug, Default)]
 pub struct SigShare<S: Scheme> {
-    i: u32,
-    v: <S::Sig as Group>::Affine,
+    index: u32,
+    value: SigPoint<S>,
 }
 
 impl<S: Scheme> SigShare<S> {
+    pub fn new(index: u32, value: SigPoint<S>) -> Self {
+        Self { index, value }
+    }
+
     pub fn serialize(&self) -> Result<Vec<u8>, TBlsError> {
-        let mut tbls_bytes = (self.i as u16).to_be_bytes().to_vec();
-        let mut bls_bytes = self.v.serialize()?;
+        let mut tbls_bytes = (self.index() as u16).to_be_bytes().to_vec();
+        let mut bls_bytes = self
+            .value()
+            .serialize()
+            .map_err(|_| TBlsError::SerializeShare)?;
         tbls_bytes.append(&mut bls_bytes);
 
         Ok(tbls_bytes)
@@ -48,22 +72,20 @@ impl<S: Scheme> SigShare<S> {
     pub fn deserialize(raw: &[u8]) -> Result<Self, TBlsError> {
         let expected = <S::Sig as Group>::POINT_SIZE + INDEX_LEN;
         if raw.len() != expected {
-            return Err(TBlsError::InvalidInputLenght {
-                expected,
-                received: raw.len(),
-            });
+            return Err(TBlsError::ShareInputLen);
         }
-        let i = u32::from_be_bytes([0, 0, raw[0], raw[1]]);
-        let v = Affine::deserialize(&raw[2..])?;
-        Ok(Self { i, v })
+        let index = u32::from_be_bytes([0, 0, raw[0], raw[1]]);
+        let value = Affine::deserialize(&raw[2..]).map_err(|_| TBlsError::DeserializeShare)?;
+
+        Ok(Self::new(index, value))
     }
 
     pub fn index(&self) -> u32 {
-        self.i
+        self.index
     }
 
     pub fn value(&self) -> &<S::Sig as Group>::Affine {
-        &self.v
+        &self.value
     }
 }
 
@@ -113,7 +135,7 @@ pub fn recover<S: Scheme>(
             den *= &tmp;
         }
 
-        let inv = den.invert()?;
+        let inv = den.invert().map_err(|_| TBlsError::ScalarNonInvertable)?;
         num *= &inv;
         yi *= &num;
         acc += &yi;

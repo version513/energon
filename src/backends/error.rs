@@ -1,35 +1,38 @@
 #[derive(thiserror::Error, Debug, PartialEq)]
-pub enum PointError {
-    #[error("invalid input lenght: expected {expected}, received {received}")]
-    InvalidInputLenght { expected: usize, received: usize },
-    #[error("invalid point")]
-    InvalidPoint,
-    #[error("serialization: {0}")]
-    Serialization(String),
-    #[error("input is not canonical")]
-    NonCanonicalInput,
+pub enum BackendsError {
+    // Point
+    #[error("point: invalid input lenght")]
+    PointInputLen,
+    #[error("point: failed to serialize")]
+    PointSerialize,
+    #[error("point: failed to deserialize")]
+    PointDeserialize,
+    // Scalar
+    #[error("scalar: invalid input lenght")]
+    ScalarInputLen,
+    #[error("scalar: failed to serialize")]
+    ScalarSerialize,
+    #[error("scalar: failed to deserialize")]
+    ScalarDeserialize,
+    #[error("scalar: non-invertable")]
+    ScalarNonInvertable,
 }
 
-#[derive(thiserror::Error, Debug, PartialEq)]
-pub enum ScalarError {
-    #[error("invalid input lenght: expected {expected}, received {received}")]
-    InvalidInputLenght { expected: usize, received: usize },
-    #[error("serialization: {0}")]
-    Serialization(String),
-    #[error("not invertable")]
-    NonInvertible,
-    #[error("input is not canonical")]
-    NonCanonicalInput,
-}
-
+/// To simplify error nesting structures, the [`BlsError`] has prefixes on variants `Sign` and `Verify`.
 #[derive(thiserror::Error, Debug, PartialEq)]
 pub enum BlsError {
-    #[error("empty message")]
-    EmptyMessage,
-    #[error("verification is failed")]
-    FailedVerification,
-    #[error("hash to curve: {0}")]
-    HashToCurve(String),
-    #[error("failed to sign, resulting point is invalid")]
-    Failed,
+    #[error("sign: received empty message")]
+    SignEmptyMessage,
+    #[error("sign: can not initialize map to curve hasher")]
+    SignMapToCurveHasher,
+    #[error("sign: map to curve error")]
+    SignMapToCurve,
+    #[error("verify: received empty message")]
+    VerifyEmptyMessage,
+    #[error("verify: map to curve error")]
+    VerifyMapToCurve,
+    #[error("verify: can not initialize map to curve hasher")]
+    VerifyMapToCurveHasher,
+    #[error("signature is invalid")]
+    InvalidSignature,
 }

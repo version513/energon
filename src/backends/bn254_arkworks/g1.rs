@@ -1,6 +1,6 @@
+use super::super::error::BackendsError;
+use super::super::error::BlsError;
 use super::scalar::Scalar;
-use crate::backends::error::BlsError;
-use crate::backends::error::PointError;
 
 use crate::curves::bn254;
 use crate::traits::Affine;
@@ -27,11 +27,11 @@ impl Affine for G1Affine {
         Self(ark_curve::G1Affine::generator())
     }
 
-    fn serialize(&self) -> Result<Vec<u8>, PointError> {
+    fn serialize(&self) -> Result<Vec<u8>, BackendsError> {
         let mut bytes = Vec::with_capacity(bn254::POINT_SIZE_G1);
         self.0
             .serialize_uncompressed(&mut bytes)
-            .map_err(|e| PointError::Serialization(e.to_string()))?;
+            .map_err(|_| BackendsError::PointSerialize)?;
 
         bytes[..bn254::POINT_SIZE_G1 / 2].reverse();
         bytes[bn254::POINT_SIZE_G1 / 2..].reverse();
@@ -39,20 +39,15 @@ impl Affine for G1Affine {
         Ok(bytes)
     }
 
-    fn deserialize(bytes: &[u8]) -> Result<Self, PointError> {
+    fn deserialize(bytes: &[u8]) -> Result<Self, BackendsError> {
         let mut bytes: [u8; bn254::POINT_SIZE_G1] =
-            bytes
-                .try_into()
-                .map_err(|_| PointError::InvalidInputLenght {
-                    expected: bn254::POINT_SIZE_G1,
-                    received: bytes.len(),
-                })?;
+            bytes.try_into().map_err(|_| BackendsError::PointInputLen)?;
 
         bytes[..bn254::POINT_SIZE_G1 / 2].reverse();
         bytes[bn254::POINT_SIZE_G1 / 2..].reverse();
 
         let point = CanonicalDeserialize::deserialize_uncompressed(bytes.as_slice())
-            .map_err(|e| PointError::Serialization(e.to_string()))?;
+            .map_err(|_| BackendsError::PointDeserialize)?;
 
         Ok(Self(point))
     }
@@ -78,11 +73,11 @@ impl Projective for G1Projective {
         Self(ark_curve::G1Projective::generator())
     }
 
-    fn serialize(&self) -> Result<Vec<u8>, PointError> {
+    fn serialize(&self) -> Result<Vec<u8>, BackendsError> {
         let mut bytes = Vec::with_capacity(bn254::POINT_SIZE_G1);
         self.0
             .serialize_uncompressed(&mut bytes)
-            .map_err(|e| PointError::Serialization(e.to_string()))?;
+            .map_err(|_| BackendsError::PointSerialize)?;
 
         bytes[..bn254::POINT_SIZE_G1 / 2].reverse();
         bytes[bn254::POINT_SIZE_G1 / 2..].reverse();
@@ -90,20 +85,15 @@ impl Projective for G1Projective {
         Ok(bytes)
     }
 
-    fn deserialize(bytes: &[u8]) -> Result<Self, PointError> {
+    fn deserialize(bytes: &[u8]) -> Result<Self, BackendsError> {
         let mut bytes: [u8; bn254::POINT_SIZE_G1] =
-            bytes
-                .try_into()
-                .map_err(|_| PointError::InvalidInputLenght {
-                    expected: bn254::POINT_SIZE_G1,
-                    received: bytes.len(),
-                })?;
+            bytes.try_into().map_err(|_| BackendsError::PointInputLen)?;
 
         bytes[..bn254::POINT_SIZE_G1 / 2].reverse();
         bytes[bn254::POINT_SIZE_G1 / 2..].reverse();
 
         let point = CanonicalDeserialize::deserialize_uncompressed(bytes.as_slice())
-            .map_err(|e| PointError::Serialization(e.to_string()))?;
+            .map_err(|_| BackendsError::PointDeserialize)?;
 
         Ok(Self(point))
     }
@@ -113,10 +103,10 @@ impl Projective for G1Projective {
     }
 }
 
-// Currently not required
 impl PairingCurve for bn254::G1 {
     type Pair = <bn254::G2 as Group>::Affine;
 
+    // Signatures on G2 will most likely not be implemented (they are practically unused).
     fn bls_verify(
         _key: &<Self as Group>::Affine,
         _sig: &Self::Pair,
@@ -253,10 +243,7 @@ mod tests {
 
         assert_eq!(
             <G1Affine as Affine>::deserialize(&bytes),
-            Err(PointError::InvalidInputLenght {
-                expected: bn254::POINT_SIZE_G1,
-                received: bn254::POINT_SIZE_G1 + 1,
-            })
+            Err(BackendsError::PointInputLen)
         )
     }
 }
