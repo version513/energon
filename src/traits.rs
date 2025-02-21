@@ -72,11 +72,13 @@ pub trait ScalarField:
 }
 
 pub trait Affine: Default + Sync + Send + Sized + PartialEq + Debug + Display {
+    type Serialized: AsRef<[u8]> + Into<Vec<u8>>;
+
     fn generator() -> Self;
     fn identity() -> Self;
     fn is_on_curve(&self) -> bool;
     fn is_identity(&self) -> bool;
-    fn serialize(&self) -> Result<Vec<u8>, BackendsError>;
+    fn serialize(&self) -> Result<Self::Serialized, BackendsError>;
     fn deserialize(bytes: &[u8]) -> Result<Self, BackendsError>;
     fn hash(&self) -> Result<[u8; 32], BackendsError> {
         let mut hasher = Blake2b256::new();
@@ -87,9 +89,11 @@ pub trait Affine: Default + Sync + Send + Sized + PartialEq + Debug + Display {
 }
 
 pub trait Projective: Sized + Debug + PartialEq + for<'a> AddAssign<&'a Self> {
+    type Serialized: AsRef<[u8]> + Into<Vec<u8>>;
+
     fn identity() -> Self;
     fn generator() -> Self;
-    fn serialize(&self) -> Result<Vec<u8>, BackendsError>;
+    fn serialize(&self) -> Result<Self::Serialized, BackendsError>;
     fn deserialize(bytes: &[u8]) -> Result<Self, BackendsError>;
     fn hash(&self) -> Result<[u8; 32], BackendsError> {
         let mut hasher = Blake2b256::new();

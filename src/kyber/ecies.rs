@@ -60,7 +60,7 @@ pub fn encrypt<S: Scheme>(
         .map_err(|_| EciesError::EncDeserializeIKM)?;
     let mut okm = [0; PAYLOAD_LEN];
 
-    Hkdf::<Sha256>::new(None, &ikm)
+    Hkdf::<Sha256>::new(None, ikm.as_ref())
         .expand(&[], &mut okm)
         .map_err(|_| EciesError::EncrHkdf)?;
     let (key, nonce) = okm.split_at(KEY_LEN);
@@ -74,9 +74,10 @@ pub fn encrypt<S: Scheme>(
         .encrypt(nonce.into(), plain.as_ref())
         .map_err(|_| EciesError::EncrAead)?;
 
-    let mut deal = eph_pk
+    let mut deal: Vec<u8> = eph_pk
         .serialize()
-        .map_err(|_| EciesError::EncrPointSerialize)?;
+        .map_err(|_| EciesError::EncrPointSerialize)?
+        .into();
     deal.append(&mut c);
 
     Ok(deal)
@@ -101,8 +102,8 @@ pub fn decrypt<S: Scheme>(
         .map_err(|_| EciesError::DecrSerializeIKM)?;
     let mut okm = [0; PAYLOAD_LEN];
 
-    Hkdf::<Sha256>::new(None, &ikm)
-        .expand(&[], &mut okm[..])
+    Hkdf::<Sha256>::new(None, ikm.as_ref())
+        .expand(&[], &mut okm.as_mut_slice())
         .map_err(|_| EciesError::DecrHkdf)?;
     let (key, nonce) = okm.split_at(KEY_LEN);
 

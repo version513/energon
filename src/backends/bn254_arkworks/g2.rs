@@ -25,14 +25,17 @@ use std::ops::MulAssign;
 pub struct G2Affine(pub(super) ark_curve::G2Affine);
 
 impl Affine for G2Affine {
+    type Serialized = [u8; bn254::POINT_SIZE_G2];
+
     fn generator() -> Self {
         Self(ark_curve::G2Affine::generator())
     }
 
-    fn serialize(&self) -> Result<Vec<u8>, BackendsError> {
-        let mut bytes = Vec::with_capacity(bn254::POINT_SIZE_G2);
+    fn serialize(&self) -> Result<Self::Serialized, BackendsError> {
+        let mut bytes: Self::Serialized = [0; bn254::POINT_SIZE_G2];
+
         self.0
-            .serialize_uncompressed(&mut bytes)
+            .serialize_uncompressed(&mut bytes.as_mut_slice())
             .map_err(|_| BackendsError::PointSerialize)?;
 
         bytes[..bn254::POINT_SIZE_G2 / 2].reverse();
@@ -71,14 +74,17 @@ impl Affine for G2Affine {
 pub struct G2Projective(pub(super) ark_curve::G2Projective);
 
 impl Projective for G2Projective {
+    type Serialized = [u8; bn254::POINT_SIZE_G2];
+
     fn generator() -> Self {
         Self(ark_curve::G2Projective::generator())
     }
 
-    fn serialize(&self) -> Result<Vec<u8>, BackendsError> {
-        let mut bytes = Vec::with_capacity(bn254::POINT_SIZE_G2);
+    fn serialize(&self) -> Result<Self::Serialized, BackendsError> {
+        let mut bytes: Self::Serialized = [0; bn254::POINT_SIZE_G2];
+
         self.0
-            .serialize_uncompressed(&mut bytes)
+            .serialize_uncompressed(&mut bytes.as_mut_slice())
             .map_err(|_| BackendsError::PointSerialize)?;
         bytes[..bn254::POINT_SIZE_G2 / 2].reverse();
         bytes[bn254::POINT_SIZE_G2 / 2..].reverse();
@@ -253,8 +259,8 @@ mod tests {
         let affine_point = <G2Affine as Affine>::deserialize(&bytes).unwrap();
         let projective_point = <G2Projective as Projective>::deserialize(&bytes).unwrap();
 
-        assert_eq!(affine_point.serialize().unwrap(), bytes);
-        assert_eq!(projective_point.serialize().unwrap(), bytes);
+        assert_eq!(affine_point.serialize().unwrap().as_ref(), bytes);
+        assert_eq!(projective_point.serialize().unwrap().as_ref(), bytes);
 
         // invalid size
         bytes.push(1);
