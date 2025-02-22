@@ -21,12 +21,14 @@ use std::ops::Neg;
 pub struct G2Affine(pub(super) blstrs::G2Affine);
 
 impl Affine for G2Affine {
+    type Serialized = [u8; bls12381::POINT_SIZE_G2];
+
     fn generator() -> Self {
         Self(blstrs::G2Affine::generator())
     }
 
-    fn serialize(&self) -> Result<Vec<u8>, BackendsError> {
-        Ok(self.0.to_compressed().into())
+    fn serialize(&self) -> Result<Self::Serialized, BackendsError> {
+        Ok(self.0.to_compressed())
     }
 
     fn deserialize(bytes: &[u8]) -> Result<Self, BackendsError> {
@@ -57,12 +59,14 @@ impl Affine for G2Affine {
 pub struct G2Projective(pub(super) blstrs::G2Projective);
 
 impl Projective for G2Projective {
+    type Serialized = [u8; bls12381::POINT_SIZE_G2];
+
     fn generator() -> Self {
         Self(blstrs::G2Projective::generator())
     }
 
-    fn serialize(&self) -> Result<Vec<u8>, BackendsError> {
-        Ok(self.0.to_compressed().to_vec())
+    fn serialize(&self) -> Result<Self::Serialized, BackendsError> {
+        Ok(self.0.to_compressed())
     }
 
     fn deserialize(bytes: &[u8]) -> Result<Self, BackendsError> {

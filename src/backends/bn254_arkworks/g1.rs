@@ -23,14 +23,17 @@ use std::ops::MulAssign;
 pub struct G1Affine(pub(super) ark_curve::G1Affine);
 
 impl Affine for G1Affine {
+    type Serialized = [u8; bn254::POINT_SIZE_G1];
+
     fn generator() -> Self {
         Self(ark_curve::G1Affine::generator())
     }
 
-    fn serialize(&self) -> Result<Vec<u8>, BackendsError> {
-        let mut bytes = Vec::with_capacity(bn254::POINT_SIZE_G1);
+    fn serialize(&self) -> Result<Self::Serialized, BackendsError> {
+        let mut bytes: Self::Serialized = [0; bn254::POINT_SIZE_G1];
+
         self.0
-            .serialize_uncompressed(&mut bytes)
+            .serialize_uncompressed(&mut bytes.as_mut_slice())
             .map_err(|_| BackendsError::PointSerialize)?;
 
         bytes[..bn254::POINT_SIZE_G1 / 2].reverse();
@@ -69,14 +72,17 @@ impl Affine for G1Affine {
 pub struct G1Projective(pub(super) ark_curve::G1Projective);
 
 impl Projective for G1Projective {
+    type Serialized = [u8; bn254::POINT_SIZE_G1];
+
     fn generator() -> Self {
         Self(ark_curve::G1Projective::generator())
     }
 
-    fn serialize(&self) -> Result<Vec<u8>, BackendsError> {
-        let mut bytes = Vec::with_capacity(bn254::POINT_SIZE_G1);
+    fn serialize(&self) -> Result<Self::Serialized, BackendsError> {
+        let mut bytes: Self::Serialized = [0; bn254::POINT_SIZE_G1];
+
         self.0
-            .serialize_uncompressed(&mut bytes)
+            .serialize_uncompressed(&mut bytes.as_mut_slice())
             .map_err(|_| BackendsError::PointSerialize)?;
 
         bytes[..bn254::POINT_SIZE_G1 / 2].reverse();
@@ -235,8 +241,8 @@ mod tests {
         let affine_point = <G1Affine as Affine>::deserialize(&bytes).unwrap();
         let projective_point = <G1Projective as Projective>::deserialize(&bytes).unwrap();
 
-        assert_eq!(affine_point.serialize().unwrap(), bytes);
-        assert_eq!(projective_point.serialize().unwrap(), bytes);
+        assert_eq!(affine_point.serialize().unwrap().as_ref(), bytes);
+        assert_eq!(projective_point.serialize().unwrap().as_ref(), bytes);
 
         // invalid size
         bytes.push(1);

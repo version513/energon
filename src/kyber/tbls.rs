@@ -63,7 +63,8 @@ impl<S: Scheme> SigShare<S> {
         let mut bls_bytes = self
             .value()
             .serialize()
-            .map_err(|_| TBlsError::SerializeShare)?;
+            .map_err(|_| TBlsError::SerializeShare)?
+            .into();
         tbls_bytes.append(&mut bls_bytes);
 
         Ok(tbls_bytes)

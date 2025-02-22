@@ -31,15 +31,16 @@ pub enum SchnorrError {
 pub fn sign<S: Scheme>(private: &S::Scalar, msg: &[u8]) -> Result<Vec<u8>, SchnorrError> {
     // create random secret k and public point commitment r
     let k = S::Scalar::random();
-    let mut r_bytes = S::sk_to_pk(&k)
+    let mut r_bytes: Vec<u8> = S::sk_to_pk(&k)
         .serialize()
-        .map_err(|_| SchnorrError::SignSerializeR)?;
+        .map_err(|_| SchnorrError::SignSerializeR)?
+        .into();
 
     // create hash(public || r || message)
     let public_bytes = S::sk_to_pk(private)
         .serialize()
         .map_err(|_| SchnorrError::SignSerializePK)?;
-    let h = S::Scalar::set_bytes(&public_bytes, &r_bytes, msg);
+    let h = S::Scalar::set_bytes(public_bytes.as_ref(), r_bytes.as_ref(), msg);
 
     // compute response s = k + x*h
     let xh = h * private;
@@ -47,7 +48,7 @@ pub fn sign<S: Scheme>(private: &S::Scalar, msg: &[u8]) -> Result<Vec<u8>, Schno
 
     //  return r || s
     let s_bytes = s.to_bytes_be().map_err(|_| SchnorrError::SignSerializeS)?;
-    r_bytes.extend_from_slice(&s_bytes);
+    r_bytes.extend_from_slice(s_bytes.as_ref());
 
     Ok(r_bytes)
 }
@@ -71,7 +72,7 @@ pub fn verify<S: Scheme>(
     let public_bytes = public
         .serialize()
         .map_err(|_| SchnorrError::VerifySerializePK)?;
-    let h = S::Scalar::set_bytes(&public_bytes, r_bytes, msg);
+    let h = S::Scalar::set_bytes(public_bytes.as_ref(), r_bytes, msg);
 
     // compute s = g^s
     let s = <S::Key as Group>::Affine::generator() * s;

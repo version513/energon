@@ -31,14 +31,17 @@ use sha2::Sha256;
 pub struct G1Affine(pub(super) ark_curve::G1Affine);
 
 impl Affine for G1Affine {
+    type Serialized = [u8; bls12381::POINT_SIZE_G1];
+
     fn generator() -> Self {
         Self(ark_curve::G1Affine::generator())
     }
 
-    fn serialize(&self) -> Result<Vec<u8>, BackendsError> {
-        let mut bytes = Vec::new();
+    fn serialize(&self) -> Result<Self::Serialized, BackendsError> {
+        let mut bytes: Self::Serialized = [0; bls12381::POINT_SIZE_G1];
+
         self.0
-            .serialize_compressed(&mut bytes)
+            .serialize_compressed(&mut bytes.as_mut_slice())
             .map_err(|_| BackendsError::PointSerialize)?;
 
         Ok(bytes)
@@ -68,14 +71,17 @@ impl Affine for G1Affine {
 pub struct G1Projective(pub(super) ark_curve::G1Projective);
 
 impl Projective for G1Projective {
+    type Serialized = [u8; bls12381::POINT_SIZE_G1];
+
     fn generator() -> Self {
         Self(ark_curve::G1Projective::generator())
     }
 
-    fn serialize(&self) -> Result<Vec<u8>, BackendsError> {
-        let mut bytes = Vec::new();
+    fn serialize(&self) -> Result<Self::Serialized, BackendsError> {
+        let mut bytes: Self::Serialized = [0; bls12381::POINT_SIZE_G1];
+
         self.0
-            .serialize_compressed(&mut bytes)
+            .serialize_compressed(&mut bytes.as_mut_slice())
             .map_err(|_| BackendsError::PointSerialize)?;
 
         Ok(bytes)
