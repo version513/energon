@@ -52,13 +52,16 @@ pub trait ScalarField:
     + for<'a> AddAssign<&'a Self>
 {
     const SCALAR_SIZE: usize;
+    /// Serialized scalar output.
+    /// Configured for all implementors as array [0u8; <curve>::<scalar-size>]
+    type Serialized: AsRef<[u8]> + Into<Vec<u8>>;
 
     fn zero() -> Self;
     fn one() -> Self;
     fn random() -> Self;
     fn invert(&self) -> Result<Self, BackendsError>;
     fn from_u64(val: u64) -> Self;
-    fn to_bytes_be(self) -> Result<[u8; 32], BackendsError>;
+    fn to_bytes_be(self) -> Result<Self::Serialized, BackendsError>;
     fn from_bytes_be(bytes: &[u8]) -> Result<Self, BackendsError>;
     fn from_be_bytes_mod_order(bytes: &[u8]) -> Self;
     fn set_bytes(public: &[u8], r: &[u8], msg: &[u8]) -> Self {
@@ -72,6 +75,8 @@ pub trait ScalarField:
 }
 
 pub trait Affine: Default + Sync + Send + Sized + PartialEq + Debug + Display {
+    /// Serialized point output.
+    /// Configured for all implementors as array [0u8; <curve>::<group>::<point-size>]
     type Serialized: AsRef<[u8]> + Into<Vec<u8>>;
 
     fn generator() -> Self;
@@ -89,6 +94,8 @@ pub trait Affine: Default + Sync + Send + Sized + PartialEq + Debug + Display {
 }
 
 pub trait Projective: Sized + Debug + PartialEq + for<'a> AddAssign<&'a Self> {
+    /// Serialized point output.
+    /// Configured for all implementors as array [0u8; <curve>::<group>::<point-size>]
     type Serialized: AsRef<[u8]> + Into<Vec<u8>>;
 
     fn identity() -> Self;

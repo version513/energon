@@ -1,7 +1,9 @@
 use super::super::error::BackendsError;
 use super::super::error::BlsError;
+use super::bls12381;
 use super::scalar::Scalar;
-use crate::curves::bls12381;
+use super::Serializer;
+
 use crate::traits::Affine;
 use crate::traits::Group;
 use crate::traits::PairingCurve;
@@ -28,7 +30,9 @@ impl Affine for G2Affine {
     }
 
     fn serialize(&self) -> Result<Self::Serialized, BackendsError> {
-        Ok(self.0.to_compressed())
+        let output = Serializer::serialize(self)?;
+
+        Ok(output)
     }
 
     fn deserialize(bytes: &[u8]) -> Result<Self, BackendsError> {
@@ -66,7 +70,9 @@ impl Projective for G2Projective {
     }
 
     fn serialize(&self) -> Result<Self::Serialized, BackendsError> {
-        Ok(self.0.to_compressed())
+        let output = Serializer::serialize(self)?;
+
+        Ok(output)
     }
 
     fn deserialize(bytes: &[u8]) -> Result<Self, BackendsError> {
@@ -124,6 +130,24 @@ impl PairingCurve for bls12381::G2 {
         }
 
         Ok(())
+    }
+}
+
+impl Serializer for G2Affine {
+    type Output = <G2Affine as Affine>::Serialized;
+
+    #[inline(always)]
+    fn serialize(&self) -> Result<Self::Output, std::convert::Infallible> {
+        Ok(self.0.to_compressed())
+    }
+}
+
+impl Serializer for G2Projective {
+    type Output = <G2Projective as Projective>::Serialized;
+
+    #[inline(always)]
+    fn serialize(&self) -> Result<Self::Output, std::convert::Infallible> {
+        Ok(self.0.to_compressed())
     }
 }
 
