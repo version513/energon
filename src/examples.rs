@@ -1,6 +1,6 @@
 // TODO: add error asserts
 
-//! This module includes full list of supported drand schemes,
+//! This module includes full list of supported Drand v2 schemes,
 //! to execute tests the backends need to be specified, valid options are:
 //!    cargo test --features  bls12381_blstrs,bn254_arkworks
 //! or
@@ -52,8 +52,8 @@ mod tests {
         let private = S::Scalar::random();
         let public = S::sk_to_pk(&private);
         let msg = S::Scalar::random().to_bytes_be().unwrap();
-        let sig = schnorr::sign::<S>(&private, &msg).unwrap();
-        assert!(schnorr::verify::<S>(&public, &msg, &sig).is_ok())
+        let sig = schnorr::sign::<S>(&private, msg.as_ref()).unwrap();
+        assert!(schnorr::verify::<S>(&public, msg.as_ref(), &sig).is_ok())
     }
 
     #[test]

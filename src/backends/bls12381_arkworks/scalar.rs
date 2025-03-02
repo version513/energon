@@ -25,6 +25,7 @@ pub struct Scalar(pub(super) Fr);
 
 impl ScalarField for Scalar {
     const SCALAR_SIZE: usize = bls12381::SCALAR_SIZE;
+    type Serialized = [u8; Self::SCALAR_SIZE];
 
     fn one() -> Self {
         Self(Fr::one())
@@ -39,7 +40,7 @@ impl ScalarField for Scalar {
         Self(<Fr as PrimeField>::from_be_bytes_mod_order(bytes))
     }
 
-    fn to_bytes_be(self) -> Result<[u8; Self::SCALAR_SIZE], BackendsError> {
+    fn to_bytes_be(self) -> Result<Self::Serialized, BackendsError> {
         let mut writer = [0; Self::SCALAR_SIZE];
         CanonicalSerialize::serialize_compressed(&self.0, &mut writer[..])
             .map_err(|_| BackendsError::ScalarSerialize)?;

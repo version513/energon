@@ -8,7 +8,24 @@ mod bls12381_blstrs {
     mod scalar;
 
     use crate::curves::bls12381;
+    use std::convert::Infallible;
+
     super::impl_groups!(bls12381);
+
+    /// Infallible serializer for blstrs scalar and points
+    /// Used internally to simplify public traits bounds.
+    trait Serializer {
+        type Output;
+
+        fn serialize(&self) -> Result<Self::Output, Infallible>;
+    }
+
+    impl From<Infallible> for super::error::BackendsError {
+        #[inline]
+        fn from(infallible: Infallible) -> super::error::BackendsError {
+            match infallible {}
+        }
+    }
 }
 
 #[cfg(feature = "bls12381_arkworks")]

@@ -1,5 +1,6 @@
 use super::super::error::BackendsError;
-use crate::curves::bls12381;
+use super::bls12381;
+use super::Serializer;
 use crate::traits::ScalarField;
 
 use std::fmt::Display;
@@ -19,6 +20,7 @@ pub struct Scalar(pub(super) blstrs::Scalar);
 
 impl ScalarField for Scalar {
     const SCALAR_SIZE: usize = bls12381::SCALAR_SIZE;
+    type Serialized = [u8; Self::SCALAR_SIZE];
 
     fn one() -> Self {
         Self(blstrs::Scalar::ONE)
@@ -43,7 +45,7 @@ impl ScalarField for Scalar {
         }
     }
 
-    fn to_bytes_be(self) -> Result<[u8; Self::SCALAR_SIZE], BackendsError> {
+    fn to_bytes_be(self) -> Result<Self::Serialized, BackendsError> {
         Ok(self.0.to_bytes_be())
     }
 
@@ -80,6 +82,15 @@ impl ScalarField for Scalar {
 
     fn zero() -> Self {
         Self(blstrs::Scalar::ZERO)
+    }
+}
+
+impl Serializer for Scalar {
+    type Output = <Scalar as ScalarField>::Serialized;
+
+    #[inline(always)]
+    fn serialize(&self) -> Result<Self::Output, std::convert::Infallible> {
+        Ok(self.0.to_bytes_be())
     }
 }
 
