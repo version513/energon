@@ -7,7 +7,7 @@ use crate::traits::Scheme;
 
 use crate::points::KeyPoint;
 
-#[derive(Default, PartialEq)]
+#[derive(Default, PartialEq, Clone)]
 pub struct PriShare<S: Scheme> {
     index: u32,
     value: S::Scalar,
