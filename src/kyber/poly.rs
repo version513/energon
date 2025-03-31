@@ -33,10 +33,19 @@ pub struct PriPoly<S: Scheme> {
 }
 
 impl<S: Scheme> PriPoly<S> {
-    pub fn new(degree: u32) -> Self {
-        let mut coeffs = Vec::new();
-        for _ in 0..degree {
-            coeffs.push(ScalarField::random())
+    /// Creates a new secret sharing polynomial using the provided
+    /// secret sharing threshold and secret (if present).
+    pub fn new(threshold: u32, secret: Option<S::Scalar>) -> Self {
+        let mut coeffs = Vec::with_capacity(threshold as usize);
+        if let Some(s) = secret {
+            coeffs.push(s);
+            for _ in 1..threshold {
+                coeffs.push(ScalarField::random())
+            }
+        } else {
+            for _ in 0..threshold {
+                coeffs.push(ScalarField::random())
+            }
         }
 
         Self { coeffs }
