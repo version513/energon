@@ -33,7 +33,7 @@ impl Affine for G1Affine {
         let mut bytes: Self::Serialized = [0; bn254::POINT_SIZE_G1];
 
         self.0
-            .serialize_uncompressed(&mut bytes.as_mut_slice())
+            .serialize_uncompressed(bytes.as_mut_slice())
             .map_err(|_| BackendsError::PointSerialize)?;
 
         bytes[..bn254::POINT_SIZE_G1 / 2].reverse();
@@ -82,7 +82,7 @@ impl Projective for G1Projective {
         let mut bytes: Self::Serialized = [0; bn254::POINT_SIZE_G1];
 
         self.0
-            .serialize_uncompressed(&mut bytes.as_mut_slice())
+            .serialize_uncompressed(bytes.as_mut_slice())
             .map_err(|_| BackendsError::PointSerialize)?;
 
         bytes[..bn254::POINT_SIZE_G1 / 2].reverse();

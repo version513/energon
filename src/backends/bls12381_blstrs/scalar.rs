@@ -56,7 +56,7 @@ impl ScalarField for Scalar {
 
         let scalar = blstrs::Scalar::from_bytes_be(&bytes)
             .into_option()
-            .ok_or_else(|| BackendsError::ScalarDeserialize)?;
+            .ok_or(BackendsError::ScalarDeserialize)?;
 
         Ok(Self(scalar))
     }
@@ -75,7 +75,7 @@ impl ScalarField for Scalar {
             .0
             .invert()
             .into_option()
-            .ok_or_else(|| BackendsError::ScalarNonInvertable)?;
+            .ok_or(BackendsError::ScalarNonInvertable)?;
 
         Ok(Self(scalar))
     }

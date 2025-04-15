@@ -36,7 +36,7 @@ pub enum SchemeError {
     UnknownScheme,
 }
 
-pub trait DrandScheme: Scheme + 'static + Sized + PartialEq {
+pub trait DrandScheme: Scheme + 'static + Sized + PartialEq + Clone {
     const ID: &'static str;
     type Beacon: BeaconDigest<Self>;
 

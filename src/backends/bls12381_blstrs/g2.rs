@@ -39,9 +39,9 @@ impl Affine for G2Affine {
         let bytes: &[u8; bls12381::G2::POINT_SIZE] =
             &bytes.try_into().map_err(|_| BackendsError::PointInputLen)?;
 
-        let point = blstrs::G2Affine::from_compressed(&bytes)
+        let point = blstrs::G2Affine::from_compressed(bytes)
             .into_option()
-            .ok_or_else(|| BackendsError::PointDeserialize)?;
+            .ok_or(BackendsError::PointDeserialize)?;
 
         Ok(Self(point))
     }
@@ -79,9 +79,9 @@ impl Projective for G2Projective {
         let bytes: &[u8; bls12381::G2::POINT_SIZE] =
             &bytes.try_into().map_err(|_| BackendsError::PointInputLen)?;
 
-        let point = blstrs::G2Projective::from_compressed(&bytes)
+        let point = blstrs::G2Projective::from_compressed(bytes)
             .into_option()
-            .ok_or_else(|| BackendsError::PointDeserialize)?;
+            .ok_or(BackendsError::PointDeserialize)?;
 
         Ok(Self(point))
     }

@@ -117,7 +117,7 @@ pub trait PairingCurve: Group {
     fn bls_verify(key: &Self::Affine, sig: &Self::Pair, msg: &[u8]) -> Result<(), BlsError>;
 }
 
-pub trait Scheme {
+pub trait Scheme: Clone + 'static {
     type Key: Group<Scalar = Self::Scalar>
         + PairingCurve<Scalar = Self::Scalar, Pair = <Self::Sig as Group>::Affine>;
 

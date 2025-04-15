@@ -25,6 +25,10 @@ impl<S: Scheme> PriShare<S> {
     pub fn value(&self) -> &S::Scalar {
         &self.value
     }
+
+    pub fn into_value(self) -> S::Scalar {
+        self.value
+    }
 }
 
 #[derive(Debug, Default)]
@@ -79,7 +83,7 @@ impl<S: Scheme> PriPoly<S> {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct PubPoly<S: Scheme> {
     pub commits: Vec<KeyPoint<S>>,
 }
@@ -97,6 +101,7 @@ impl<S: Scheme> PubShare<S> {
 }
 
 impl<S: Scheme> PubPoly<S> {
+    /// Eval computes the public share v = p(i).
     pub fn eval(&self, i: u32) -> PubShare<S> {
         let xi = S::Scalar::from_u64((1 + i).into());
         let mut v = <S::Key as Group>::Projective::identity();
@@ -107,6 +112,12 @@ impl<S: Scheme> PubPoly<S> {
         PubShare { i, v: v.into() }
     }
 
+    /// Commit returns the secret commitment p(0), i.e., the constant term of the polynomial.
+    pub fn commit(&self) -> Option<&KeyPoint<S>> {
+        self.commits.first()
+    }
+
+    /// Threshold returns the secret sharing threshold.
     pub fn threshold(&self) -> usize {
         self.commits.len()
     }

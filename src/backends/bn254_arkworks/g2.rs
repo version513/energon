@@ -35,7 +35,7 @@ impl Affine for G2Affine {
         let mut bytes: Self::Serialized = [0; bn254::POINT_SIZE_G2];
 
         self.0
-            .serialize_uncompressed(&mut bytes.as_mut_slice())
+            .serialize_uncompressed(bytes.as_mut_slice())
             .map_err(|_| BackendsError::PointSerialize)?;
 
         bytes[..bn254::POINT_SIZE_G2 / 2].reverse();
@@ -84,7 +84,7 @@ impl Projective for G2Projective {
         let mut bytes: Self::Serialized = [0; bn254::POINT_SIZE_G2];
 
         self.0
-            .serialize_uncompressed(&mut bytes.as_mut_slice())
+            .serialize_uncompressed(bytes.as_mut_slice())
             .map_err(|_| BackendsError::PointSerialize)?;
         bytes[..bn254::POINT_SIZE_G2 / 2].reverse();
         bytes[bn254::POINT_SIZE_G2 / 2..].reverse();
@@ -125,7 +125,7 @@ impl PairingCurve for bn254::G2 {
         let p: ark_ec::bn::G1Prepared<ark_bn254::Config> =
             super::hash_to_curve_on_g1::map_to_curve_svdw(msg).into();
 
-        let lhs = ark_bn254::Bn254::pairing(sig, &g.0);
+        let lhs = ark_bn254::Bn254::pairing(sig, g.0);
         let rhs = ark_bn254::Bn254::pairing(p, key.0);
 
         if !lhs.eq(&rhs) {
