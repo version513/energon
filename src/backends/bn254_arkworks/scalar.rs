@@ -54,14 +54,13 @@ impl ScalarField for Scalar {
             .try_into()
             .map_err(|_| BackendsError::ScalarInputLen)?;
         bytes.reverse();
-        let scalar =
-            Fr::from_random_bytes(&bytes).ok_or_else(|| BackendsError::ScalarDeserialize)?;
+        let scalar = Fr::from_random_bytes(&bytes).ok_or(BackendsError::ScalarDeserialize)?;
 
         Ok(Self(scalar))
     }
 
     fn invert(&self) -> Result<Self, BackendsError> {
-        let scalar = Field::inverse(&self.0).ok_or_else(|| BackendsError::ScalarNonInvertable)?;
+        let scalar = Field::inverse(&self.0).ok_or(BackendsError::ScalarNonInvertable)?;
         Ok(Self(scalar))
     }
 

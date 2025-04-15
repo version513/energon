@@ -103,7 +103,7 @@ pub fn decrypt<S: Scheme>(
     let mut okm = [0; PAYLOAD_LEN];
 
     Hkdf::<Sha256>::new(None, ikm.as_ref())
-        .expand(&[], &mut okm.as_mut_slice())
+        .expand(&[], okm.as_mut_slice())
         .map_err(|_| EciesError::DecrHkdf)?;
     let (key, nonce) = okm.split_at(KEY_LEN);
 

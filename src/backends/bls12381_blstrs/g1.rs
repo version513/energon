@@ -41,7 +41,7 @@ impl Affine for G1Affine {
 
         let point = blstrs::G1Affine::from_compressed(bytes)
             .into_option()
-            .ok_or_else(|| BackendsError::PointDeserialize)?;
+            .ok_or(BackendsError::PointDeserialize)?;
 
         Ok(Self(point))
     }
@@ -79,9 +79,9 @@ impl Projective for G1Projective {
         let bytes: &[u8; bls12381::G1::POINT_SIZE] =
             &bytes.try_into().map_err(|_| BackendsError::PointInputLen)?;
 
-        let point = blstrs::G1Projective::from_compressed(&bytes)
+        let point = blstrs::G1Projective::from_compressed(bytes)
             .into_option()
-            .ok_or_else(|| BackendsError::PointDeserialize)?;
+            .ok_or(BackendsError::PointDeserialize)?;
 
         Ok(Self(point))
     }

@@ -30,8 +30,8 @@ pub enum TBlsError {
 }
 
 pub fn sign<S: Scheme>(pri_share: &PriShare<S>, msg: &[u8]) -> Result<SigShare<S>, TBlsError> {
-    let value = <S::Key as PairingCurve>::bls_sign(msg, &pri_share.value())
-        .map_err(|err| TBlsError::Sign(err))?;
+    let value =
+        <S::Key as PairingCurve>::bls_sign(msg, pri_share.value()).map_err(TBlsError::Sign)?;
 
     Ok(SigShare::new(pri_share.index(), value))
 }
