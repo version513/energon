@@ -15,6 +15,7 @@ use std::ops::Add;
 use std::ops::AddAssign;
 use std::ops::Mul;
 use std::ops::MulAssign;
+use std::ops::Neg;
 use std::ops::SubAssign;
 
 use rand_chacha::rand_core::SeedableRng;
@@ -63,6 +64,10 @@ impl ScalarField for Scalar {
     fn invert(&self) -> Result<Self, BackendsError> {
         let scalar = Field::inverse(&self.0).ok_or_else(|| BackendsError::ScalarNonInvertable)?;
         Ok(Self(scalar))
+    }
+
+    fn negate(self) -> Self {
+        Self(self.0.neg())
     }
 
     fn zero() -> Self {
