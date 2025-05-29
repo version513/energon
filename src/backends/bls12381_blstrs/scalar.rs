@@ -80,6 +80,10 @@ impl ScalarField for Scalar {
         Ok(Self(scalar))
     }
 
+    fn negate(self) -> Self {
+        Self(-self.0)
+    }
+
     fn zero() -> Self {
         Self(blstrs::Scalar::ZERO)
     }

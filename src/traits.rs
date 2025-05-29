@@ -60,6 +60,7 @@ pub trait ScalarField:
     fn one() -> Self;
     fn random() -> Self;
     fn invert(&self) -> Result<Self, BackendsError>;
+    fn negate(self) -> Self;
     fn from_u64(val: u64) -> Self;
     fn to_bytes_be(self) -> Result<Self::Serialized, BackendsError>;
     fn from_bytes_be(bytes: &[u8]) -> Result<Self, BackendsError>;
