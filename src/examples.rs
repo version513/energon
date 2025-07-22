@@ -166,7 +166,7 @@ mod tests {
         let sigs = vec![s0, s1];
         let t = 2;
 
-        let recovered = tbls::recover(&public, &msg, &sigs, t).unwrap();
+        let recovered = tbls::recover(&public, &msg, sigs, t).unwrap();
         let required=Affine::deserialize(&hex::decode("a5ca5628c4c88b33d33f5dce6c0992289e9134eaf3b6e441053ebae4e4a309829982c658fde1f4899a729c8ac37803b90b138ca7e64b5ad53fcf726841b0ef70515f2348d07924af4c430f7a899d2689bb2dab5ef0381e6b2aaea0e4948b215c").unwrap()).unwrap();
 
         assert_eq!(recovered, required);

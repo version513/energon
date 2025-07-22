@@ -92,7 +92,7 @@ pub trait DrandScheme: Scheme + 'static + Sized + PartialEq + Clone {
     fn recover_sig(
         public: &PubPoly<Self>,
         msg: &[u8],
-        sigs: &[SigShare<Self>],
+        sigs: Vec<SigShare<Self>>,
         t: usize,
     ) -> Result<SigPoint<Self>, SchemeError> {
         tbls::recover(public, msg, sigs, t).map_err(SchemeError::TBls)
