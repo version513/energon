@@ -10,7 +10,7 @@ use crate::traits::Scheme;
 use super::poly::PriShare;
 use super::poly::PubPoly;
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 const INDEX_LEN: usize = 2;
 
@@ -27,6 +27,8 @@ pub enum TBlsError {
     ShareInputLen,
     #[error("can not recover signature, scalar is non-invertable")]
     ScalarNonInvertable,
+    #[error("can not recover signature, valid shares number is less than threshold")]
+    TooLessShares,
 }
 
 pub fn sign<S: Scheme>(pri_share: &PriShare<S>, msg: &[u8]) -> Result<SigShare<S>, TBlsError> {
@@ -90,35 +92,40 @@ impl<S: Scheme> SigShare<S> {
     }
 }
 
-// Recover reconstructs the full BLS signature S = x * H(m) from a threshold t
-// of signature shares Si using Lagrange interpolation.
+/// Reconstructs full tBLS signature S = x * H(m) from a threshold t
+/// of signature shares Si using Lagrange interpolation.
 pub fn recover<S: Scheme>(
     public: &PubPoly<S>,
     msg: &[u8],
-    sigs: &[SigShare<S>],
+    sigs: Vec<SigShare<S>>,
     t: usize,
-) -> Result<<S::Sig as Group>::Affine, TBlsError> {
-    let mut sorted: Vec<&SigShare<S>> = vec![];
+) -> Result<SigPoint<S>, TBlsError> {
+    let mut valid_sigs: Vec<_> = sigs
+        .into_iter()
+        .filter(|sig| {
+            <S::Key as PairingCurve>::bls_verify(public.eval(sig.index()).value(), sig.value(), msg)
+                .is_ok()
+        })
+        .take(t)
+        .collect();
 
-    for sig in sigs {
-        if <S::Key as PairingCurve>::bls_verify(public.eval(sig.index()).value(), sig.value(), msg)
-            .is_err()
-        {
-            continue;
-        }
-
-        sorted.push(sig);
-        if sorted.len() >= t {
-            break;
-        }
+    if valid_sigs.len() < t {
+        return Err(TBlsError::TooLessShares);
     }
-    sorted.sort_by_key(|share| share.index());
+    valid_sigs.sort_by_key(|share| share.index());
 
-    let mut map: HashMap<u32, (S::Scalar, &<S::Sig as Group>::Affine)> = HashMap::new();
-    for share in sorted {
-        let xi = S::Scalar::from_u64((share.index() + 1).into());
-        map.insert(share.index(), (xi, share.value()));
-    }
+    recover_unchecked(&valid_sigs)
+}
+
+/// WARNING: All checks are shifted to the caller side. Use [recover] instead.
+pub fn recover_unchecked<S: Scheme>(sigs: &[SigShare<S>]) -> Result<SigPoint<S>, TBlsError> {
+    let map: BTreeMap<u32, (S::Scalar, &SigPoint<S>)> = sigs
+        .iter()
+        .map(|share| {
+            let xi = S::Scalar::from_u64((share.index() + 1).into());
+            (share.index(), (xi, share.value()))
+        })
+        .collect();
 
     let mut acc = <S::Sig as Group>::Projective::identity();
     for (i, xi) in &map {
