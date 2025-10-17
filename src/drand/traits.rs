@@ -11,30 +11,7 @@ use crate::kyber::tbls::SigShare;
 use crate::points::KeyPoint;
 use crate::points::SigPoint;
 
-// Errors
-use crate::backends::error::BackendsError;
-use crate::backends::error::BlsError;
-use crate::kyber::ecies::EciesError;
-use crate::kyber::schnorr::SchnorrError;
-use crate::kyber::tbls::TBlsError;
-
-/// Compact (2-byte discriminant) top-level error for Drand mode,
-/// without sensitive cryptographic details.
-#[derive(thiserror::Error, Debug)]
-pub enum SchemeError {
-    #[error("backends error: {0}")]
-    Backends(#[from] BackendsError),
-    #[error("ecies error: {0}")]
-    Ecies(#[from] EciesError),
-    #[error("schnorr error: {0}")]
-    Schnorr(#[from] SchnorrError),
-    #[error("bls error: {0}")]
-    Bls(#[from] BlsError),
-    #[error("tbls error: {0}")]
-    TBls(#[from] TBlsError),
-    #[error("unknown scheme")]
-    UnknownScheme,
-}
+use super::error::SchemeError;
 
 pub trait DrandScheme: Scheme + 'static + Sized + PartialEq + Clone + Default {
     const ID: &'static str;
