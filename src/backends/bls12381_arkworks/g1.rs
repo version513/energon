@@ -71,27 +71,8 @@ impl Affine for G1Affine {
 pub struct G1Projective(pub(super) ark_curve::G1Projective);
 
 impl Projective for G1Projective {
-    type Serialized = [u8; bls12381::POINT_SIZE_G1];
-
     fn generator() -> Self {
         Self(ark_curve::G1Projective::generator())
-    }
-
-    fn serialize(&self) -> Result<Self::Serialized, BackendsError> {
-        let mut bytes: Self::Serialized = [0; bls12381::POINT_SIZE_G1];
-
-        self.0
-            .serialize_compressed(&mut bytes.as_mut_slice())
-            .map_err(|_| BackendsError::PointSerialize)?;
-
-        Ok(bytes)
-    }
-
-    fn deserialize(bytes: &[u8]) -> Result<Self, BackendsError> {
-        let point = CanonicalDeserialize::deserialize_compressed(bytes)
-            .map_err(|_| BackendsError::PointDeserialize)?;
-
-        Ok(Self(point))
     }
 
     fn identity() -> Self {

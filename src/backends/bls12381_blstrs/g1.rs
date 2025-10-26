@@ -63,27 +63,8 @@ impl Affine for G1Affine {
 pub struct G1Projective(pub(super) blstrs::G1Projective);
 
 impl Projective for G1Projective {
-    type Serialized = [u8; bls12381::POINT_SIZE_G1];
-
     fn generator() -> Self {
         Self(blstrs::G1Projective::generator())
-    }
-
-    fn serialize(&self) -> Result<Self::Serialized, BackendsError> {
-        let output = Serializer::serialize(self)?;
-
-        Ok(output)
-    }
-
-    fn deserialize(bytes: &[u8]) -> Result<Self, BackendsError> {
-        let bytes: &[u8; bls12381::G1::POINT_SIZE] =
-            &bytes.try_into().map_err(|_| BackendsError::PointInputLen)?;
-
-        let point = blstrs::G1Projective::from_compressed(bytes)
-            .into_option()
-            .ok_or(BackendsError::PointDeserialize)?;
-
-        Ok(Self(point))
     }
 
     fn identity() -> Self {
@@ -141,15 +122,6 @@ impl PairingCurve for bls12381::G1 {
 
 impl Serializer for G1Affine {
     type Output = <G1Affine as Affine>::Serialized;
-
-    #[inline(always)]
-    fn serialize(&self) -> Result<Self::Output, std::convert::Infallible> {
-        Ok(self.0.to_compressed())
-    }
-}
-
-impl Serializer for G1Projective {
-    type Output = <G1Projective as Projective>::Serialized;
 
     #[inline(always)]
     fn serialize(&self) -> Result<Self::Output, std::convert::Infallible> {

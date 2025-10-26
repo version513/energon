@@ -64,8 +64,9 @@ pub fn verify<S: Scheme>(
         return Err(SchnorrError::VerifyInvalidInputLenght);
     }
     let (r_bytes, s_bytes) = sig.split_at(<S::Key as Group>::POINT_SIZE);
-    let r = <S::Key as Group>::Projective::deserialize(r_bytes)
-        .map_err(|_| SchnorrError::VerifyDeserializeR)?;
+    let r = <S::Key as Group>::Affine::deserialize(r_bytes)
+        .map_err(|_| SchnorrError::VerifyDeserializeR)?
+        .into();
     let s = S::Scalar::from_bytes_be(s_bytes).map_err(|_| SchnorrError::VerifyDeserializeS)?;
 
     // recompute hash(public || r || msg)

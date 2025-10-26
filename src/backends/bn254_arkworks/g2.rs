@@ -74,34 +74,8 @@ impl Affine for G2Affine {
 pub struct G2Projective(pub(super) ark_curve::G2Projective);
 
 impl Projective for G2Projective {
-    type Serialized = [u8; bn254::POINT_SIZE_G2];
-
     fn generator() -> Self {
         Self(ark_curve::G2Projective::generator())
-    }
-
-    fn serialize(&self) -> Result<Self::Serialized, BackendsError> {
-        let mut bytes: Self::Serialized = [0; bn254::POINT_SIZE_G2];
-
-        self.0
-            .serialize_uncompressed(bytes.as_mut_slice())
-            .map_err(|_| BackendsError::PointSerialize)?;
-        bytes[..bn254::POINT_SIZE_G2 / 2].reverse();
-        bytes[bn254::POINT_SIZE_G2 / 2..].reverse();
-
-        Ok(bytes)
-    }
-
-    fn deserialize(bytes: &[u8]) -> Result<Self, BackendsError> {
-        let mut bytes: [u8; bn254::POINT_SIZE_G2] =
-            bytes.try_into().map_err(|_| BackendsError::PointInputLen)?;
-
-        bytes[..bn254::POINT_SIZE_G2 / 2].reverse();
-        bytes[bn254::POINT_SIZE_G2 / 2..].reverse();
-        let point = CanonicalDeserialize::deserialize_uncompressed(bytes.as_slice())
-            .map_err(|_| BackendsError::PointDeserialize)?;
-
-        Ok(Self(point))
     }
 
     fn identity() -> Self {
@@ -255,12 +229,8 @@ mod tests {
     fn serialization_check() {
         // Data from https://api.drand.sh/04f1e9062b8a81f848fded9c12306733282b2727ecced50032187751166ec8c3/info
         let mut bytes=hex::decode("07e1d1d335df83fa98462005690372c643340060d205306a9aa8106b6bd0b3820557ec32c2ad488e4d4f6008f89a346f18492092ccc0d594610de2732c8b808f0095685ae3a85ba243747b1b2f426049010f6b73a0cf1d389351d5aaaa1047f6297d3a4f9749b33eb2d904c9d9ebf17224150ddd7abd7567a9bec6c74480ee0b").unwrap();
-
-        let affine_point = <G2Affine as Affine>::deserialize(&bytes).unwrap();
-        let projective_point = <G2Projective as Projective>::deserialize(&bytes).unwrap();
-
-        assert_eq!(affine_point.serialize().unwrap().as_ref(), bytes);
-        assert_eq!(projective_point.serialize().unwrap().as_ref(), bytes);
+        let point = <G2Affine as Affine>::deserialize(&bytes).unwrap();
+        assert_eq!(point.serialize().unwrap().as_ref(), bytes);
 
         // invalid size
         bytes.push(1);

@@ -56,6 +56,7 @@ pub fn encrypt<S: Scheme>(
 
     // Produce Diffie–Hellman key and nonce
     let ikm = (eph_sk * public)
+        .into()
         .serialize()
         .map_err(|_| EciesError::EncDeserializeIKM)?;
     let mut okm = [0; PAYLOAD_LEN];
@@ -75,6 +76,7 @@ pub fn encrypt<S: Scheme>(
         .map_err(|_| EciesError::EncrAead)?;
 
     let mut deal: Vec<u8> = eph_pk
+        .into()
         .serialize()
         .map_err(|_| EciesError::EncrPointSerialize)?
         .into();
@@ -98,6 +100,7 @@ pub fn decrypt<S: Scheme>(
 
     // Compute shared DH key and derive the symmetric key and nonce via HKDF
     let ikm = (r * private)
+        .into()
         .serialize()
         .map_err(|_| EciesError::DecrSerializeIKM)?;
     let mut okm = [0; PAYLOAD_LEN];
