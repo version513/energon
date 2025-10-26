@@ -1,6 +1,5 @@
 use crate::traits::Affine;
 use crate::traits::Group;
-use crate::traits::Projective;
 use crate::traits::ScalarField;
 use crate::traits::Scheme;
 

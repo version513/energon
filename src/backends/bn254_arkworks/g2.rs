@@ -15,6 +15,7 @@ use ark_ec::CurveGroup;
 use ark_ec::PrimeGroup;
 use ark_serialize::CanonicalDeserialize;
 use ark_serialize::CanonicalSerialize;
+use ark_serialize::Compress;
 
 use std::fmt::Display;
 use std::ops::AddAssign;
@@ -34,9 +35,21 @@ impl Affine for G2Affine {
     fn serialize(&self) -> Result<Self::Serialized, BackendsError> {
         let mut bytes: Self::Serialized = [0; bn254::POINT_SIZE_G2];
 
+        if self.0.is_zero() {
+            return Ok(bytes);
+        }
+
         self.0
-            .serialize_uncompressed(bytes.as_mut_slice())
-            .map_err(|_| BackendsError::PointSerialize)?;
+            .x()
+            .ok_or(BackendsError::UnknownPointG2X)?
+            .serialize_with_mode(&mut bytes[..bn254::POINT_SIZE_G2 / 2], Compress::No)
+            .map_err(|_| BackendsError::SerializePointG2X)?;
+
+        self.0
+            .y()
+            .ok_or(BackendsError::UnknownPointG2Y)?
+            .serialize_with_mode(&mut bytes[bn254::POINT_SIZE_G2 / 2..], Compress::No)
+            .map_err(|_| BackendsError::SerializePointG2Y)?;
 
         bytes[..bn254::POINT_SIZE_G2 / 2].reverse();
         bytes[bn254::POINT_SIZE_G2 / 2..].reverse();

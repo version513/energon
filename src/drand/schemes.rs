@@ -139,3 +139,29 @@ where
         false
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::points::KeyPoint;
+    use crate::traits::Affine;
+    use crate::traits::ScalarField;
+
+    // Alignment with Drand-go EVM scheme point marshalling without infinity bit for Y.
+    #[test]
+    fn evm_scheme_point_serialize() {
+        type S = BN254UnchainedOnG1Scheme;
+        
+        let sc_bytes = hex::decode("0d1c2665ff805af9fd6ea7aebd69f8dcf7bd94674b8b514539d232f55043b9c1").unwrap();
+        let point_bytes=hex::decode("2d90827e74cc918a3afb7c7dc2b30cc40d89ac758188bfa4a3a8fba023df44c81f0f07092abdaf577bca8070a55bc05870c8b7ad727a222e559250646542e0c52786a55783fa933944955f9a7f8a715be70573d698a74d4396448fcc9f17abc817f896c7ce7b85ceed61e497a749e413bdd2e676c374e34e141c0a4e8cc030f0").unwrap();
+        
+        let sc= <S as Scheme>::Scalar::from_bytes_be(&sc_bytes).unwrap();
+        let point = <S as Scheme>::sk_to_pk(&sc);
+
+        let point_serialized = point.serialize().unwrap();
+        let point_deserialized= KeyPoint::<S>::deserialize(&point_bytes).unwrap();
+        
+        assert_eq!(point_serialized, *point_bytes);
+        assert_eq!(point_deserialized, point)
+    }
+}
