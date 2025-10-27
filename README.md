@@ -4,7 +4,7 @@ Energon is a traits contract that resolves the power of cryptographic libraries 
 
 ## Concept
 - Inputs specified at compile time via feature flag(s) may be selected based on supported architectures, performance, or other considerations.
-- Output need to be combined into a Scheme trait to perform static dispatch, e.g. [`Drand Scheme`](/src/drand/traits.rs#L16)
+- Output needs to be combined into a Scheme trait to perform static dispatch, e.g. [`Drand Scheme`](/src/drand/traits.rs#L16)
 
 ```
 ├── backends
@@ -35,11 +35,10 @@ Energon is a traits contract that resolves the power of cryptographic libraries 
 ## Features
 - bls12381_arkworks
 - bls12381_blstrs
+- bn254_arkworks
 
 ## Roadmap
-- [ ] rustdoc
-- [ ] builder interface
-- [ ] bn254 curve
+- [x] bn254 curve
 
 ## Security Warnings
 This library does not make any guarantees about constant-time operations, memory access patterns, or resistance to side-channel attacks.
