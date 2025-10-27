@@ -13,6 +13,7 @@ use ark_ec::AffineRepr;
 use ark_ec::PrimeGroup;
 use ark_serialize::CanonicalDeserialize;
 use ark_serialize::CanonicalSerialize;
+use ark_serialize::Compress;
 
 use std::fmt::Display;
 use std::ops::AddAssign;
@@ -32,9 +33,21 @@ impl Affine for G1Affine {
     fn serialize(&self) -> Result<Self::Serialized, BackendsError> {
         let mut bytes: Self::Serialized = [0; bn254::POINT_SIZE_G1];
 
+        if self.0.is_zero() {
+            return Ok(bytes);
+        }
+
         self.0
-            .serialize_uncompressed(bytes.as_mut_slice())
-            .map_err(|_| BackendsError::PointSerialize)?;
+            .x()
+            .ok_or(BackendsError::UnknownPointG1X)?
+            .serialize_with_mode(&mut bytes[..bn254::POINT_SIZE_G1 / 2], Compress::No)
+            .map_err(|_| BackendsError::SerializePointG1X)?;
+
+        self.0
+            .y()
+            .ok_or(BackendsError::UnknownPointG1Y)?
+            .serialize_with_mode(&mut bytes[bn254::POINT_SIZE_G1 / 2..], Compress::No)
+            .map_err(|_| BackendsError::SerializePointG1Y)?;
 
         bytes[..bn254::POINT_SIZE_G1 / 2].reverse();
         bytes[bn254::POINT_SIZE_G1 / 2..].reverse();
@@ -72,36 +85,8 @@ impl Affine for G1Affine {
 pub struct G1Projective(pub(super) ark_curve::G1Projective);
 
 impl Projective for G1Projective {
-    type Serialized = [u8; bn254::POINT_SIZE_G1];
-
     fn generator() -> Self {
         Self(ark_curve::G1Projective::generator())
-    }
-
-    fn serialize(&self) -> Result<Self::Serialized, BackendsError> {
-        let mut bytes: Self::Serialized = [0; bn254::POINT_SIZE_G1];
-
-        self.0
-            .serialize_uncompressed(bytes.as_mut_slice())
-            .map_err(|_| BackendsError::PointSerialize)?;
-
-        bytes[..bn254::POINT_SIZE_G1 / 2].reverse();
-        bytes[bn254::POINT_SIZE_G1 / 2..].reverse();
-
-        Ok(bytes)
-    }
-
-    fn deserialize(bytes: &[u8]) -> Result<Self, BackendsError> {
-        let mut bytes: [u8; bn254::POINT_SIZE_G1] =
-            bytes.try_into().map_err(|_| BackendsError::PointInputLen)?;
-
-        bytes[..bn254::POINT_SIZE_G1 / 2].reverse();
-        bytes[bn254::POINT_SIZE_G1 / 2..].reverse();
-
-        let point = CanonicalDeserialize::deserialize_uncompressed(bytes.as_slice())
-            .map_err(|_| BackendsError::PointDeserialize)?;
-
-        Ok(Self(point))
     }
 
     fn identity() -> Self {
@@ -237,12 +222,8 @@ mod tests {
     fn serialization_check() {
         // Data from https://api.drand.sh/04f1e9062b8a81f848fded9c12306733282b2727ecced50032187751166ec8c3/public/513
         let mut bytes=hex::decode("06ded8c05af23042a0caf9b404c6140f9ec64adbaf82f04d5c37153e8412ed580f827c7d5ac7d02ca0bbd989d07594729bdcde7d6dc1001191c59dc9033d31b2").unwrap();
-
-        let affine_point = <G1Affine as Affine>::deserialize(&bytes).unwrap();
-        let projective_point = <G1Projective as Projective>::deserialize(&bytes).unwrap();
-
-        assert_eq!(affine_point.serialize().unwrap().as_ref(), bytes);
-        assert_eq!(projective_point.serialize().unwrap().as_ref(), bytes);
+        let point = <G1Affine as Affine>::deserialize(&bytes).unwrap();
+        assert_eq!(point.serialize().unwrap().as_ref(), bytes);
 
         // invalid size
         bytes.push(1);

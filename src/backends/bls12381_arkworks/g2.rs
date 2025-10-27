@@ -71,27 +71,8 @@ impl Affine for G2Affine {
 pub struct G2Projective(pub(super) ark_curve::G2Projective);
 
 impl Projective for G2Projective {
-    type Serialized = [u8; bls12381::POINT_SIZE_G2];
-
     fn generator() -> Self {
         Self(ark_curve::G2Projective::generator())
-    }
-
-    fn serialize(&self) -> Result<Self::Serialized, BackendsError> {
-        let mut bytes: Self::Serialized = [0; bls12381::POINT_SIZE_G2];
-
-        self.0
-            .serialize_compressed(&mut bytes.as_mut_slice())
-            .map_err(|_| BackendsError::PointSerialize)?;
-
-        Ok(bytes)
-    }
-
-    fn deserialize(bytes: &[u8]) -> Result<Self, BackendsError> {
-        let point = CanonicalDeserialize::deserialize_compressed(bytes)
-            .map_err(|_| BackendsError::PointDeserialize)?;
-
-        Ok(Self(point))
     }
 
     fn identity() -> Self {

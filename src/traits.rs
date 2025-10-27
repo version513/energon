@@ -95,20 +95,8 @@ pub trait Affine: Default + Sync + Send + Sized + PartialEq + Debug + Display {
 }
 
 pub trait Projective: Sized + Debug + PartialEq + for<'a> AddAssign<&'a Self> {
-    /// Serialized point output.
-    /// Configured for all implementors as array [0u8; <curve>::<group>::<point-size>]
-    type Serialized: AsRef<[u8]> + Into<Vec<u8>>;
-
     fn identity() -> Self;
     fn generator() -> Self;
-    fn serialize(&self) -> Result<Self::Serialized, BackendsError>;
-    fn deserialize(bytes: &[u8]) -> Result<Self, BackendsError>;
-    fn hash(&self) -> Result<[u8; 32], BackendsError> {
-        let mut hasher = Blake2b256::new();
-        hasher.update(&self.serialize()?);
-
-        Ok(hasher.finalize().into())
-    }
 }
 
 pub trait PairingCurve: Group {
