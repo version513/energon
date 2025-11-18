@@ -25,7 +25,6 @@ use slog::debug;
 use slog::error;
 use slog::info;
 use slog::warn;
-use slog::Drain;
 use slog::Logger;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
@@ -121,7 +120,8 @@ pub struct Config<S: Scheme> {
     pub old_threshold: u32,
     /// Required to avoid replay attacks from previous runs of a DKG.
     pub nonce: [u8; 32],
-    pub log: Logger,
+    /// Optional, see [`Config::new`].
+    pub(crate) log: Logger,
 }
 
 impl<S: Scheme> Config<S> {
@@ -145,7 +145,7 @@ impl<S: Scheme> Config<S> {
             threshold,
             old_threshold,
             nonce,
-            log: log.unwrap_or(slog::Logger::root(slog_stdlog::StdLog.fuse(), slog::o!())),
+            log: log.unwrap_or(slog::Logger::root(slog::Discard, slog::o!())),
         }
     }
     pub fn get_dealer_key(&self, index: u32, is_response: bool) -> Result<&KeyPoint<S>, DkgError> {

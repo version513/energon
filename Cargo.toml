@@ -5,6 +5,24 @@ edition = "2021"
 authors = ["version513 <seuair@gmail.com>"]
 
 [dependencies]
+# Backends
+ark-bls12-381 = "0.5.0"
+ark-bn254 = "0.5.0"
+ark-ec = "0.5.0"
+ark-std = "0.5.0"
+ark-serialize = "0.5.0"
+ark-ff = "0.5.0"
+blstrs = "0.7.0"
+blst_lib = { version = "0.3.11", package = "blst" }
+
+# Common
+tokio = { version = "1.44.2", features = [
+    "macros",
+    "rt-multi-thread",
+    "sync",
+    "time",
+] }
+group = { version = "0.13.0", default-features = false }
 aes-gcm = "0.10.1"
 hkdf = "0.12.3"
 pairing = { version = "0.23.0" }
@@ -13,38 +31,14 @@ thiserror = "2.0.3"
 rand = "0.8.4"
 rand_core = "0.6.4"
 rand_chacha = "0.3.0"
-blstrs = "0.7.0"
-blst_lib = { version = "0.3.11", package = "blst" }
 sha2 = "0.10.7"
+sha3 = "0.10.8"
 hex = "0.4.2"
-
 num-traits = "0.2.19"
 num-bigint = "0.4.3"
-sha3 = "0.10.8"
-
-ark-bls12-381 = "0.5.0"
-ark-bn254 = "0.5.0"
-ark-ec = "0.5.0"
-ark-std = "0.5.0"
-ark-serialize = "0.5.0"
-ark-ff = "0.5.0"
-
-tokio = { version = "1.44.2", features = [
-    "macros",
-    "rt-multi-thread",
-    "sync",
-    "time",
-] }
 slog = "2.8.2"
-slog-stdlog = "4.1.1"
+crypto-common = "0.1.3"
 
-[dependencies.crypto-common]
-version = "0.1.3"
-
-[dependencies.group]
-version = "0.13.0"
-default-features = false
-optional = false
 
 [features]
 bls12381_arkworks = []
