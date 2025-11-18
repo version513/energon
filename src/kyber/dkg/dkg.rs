@@ -21,10 +21,14 @@ use crate::kyber::poly::PubShare;
 use crate::kyber::schnorr;
 use crate::kyber::schnorr::SchnorrError;
 
+use slog::debug;
+use slog::error;
+use slog::info;
+use slog::warn;
+use slog::Logger;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::fmt::Display;
-use tracing::*;
 
 #[derive(thiserror::Error, Debug)]
 pub enum DkgError {
@@ -116,10 +120,34 @@ pub struct Config<S: Scheme> {
     pub old_threshold: u32,
     /// Required to avoid replay attacks from previous runs of a DKG.
     pub nonce: [u8; 32],
-    pub log: tracing::Span,
+    /// Optional, see [`Config::new`].
+    pub(crate) log: Logger,
 }
 
 impl<S: Scheme> Config<S> {
+    pub fn new(
+        long_term: S::Scalar,
+        old_nodes: Vec<Node<S>>,
+        public_coeffs: Vec<KeyPoint<S>>,
+        new_nodes: Vec<Node<S>>,
+        share: Option<DistKeyShare<S>>,
+        threshold: u32,
+        old_threshold: u32,
+        nonce: [u8; 32],
+        log: Option<Logger>,
+    ) -> Self {
+        Self {
+            long_term,
+            old_nodes,
+            public_coeffs,
+            new_nodes,
+            share,
+            threshold,
+            old_threshold,
+            nonce,
+            log: log.unwrap_or(slog::Logger::root(slog::Discard, slog::o!())),
+        }
+    }
     pub fn get_dealer_key(&self, index: u32, is_response: bool) -> Result<&KeyPoint<S>, DkgError> {
         let dealers = if is_response || self.old_nodes.is_empty() {
             &self.new_nodes
@@ -380,7 +408,7 @@ impl<S: Scheme> DistKeyGenerator<S> {
             }
             let cipher = ecies::encrypt::<S>(&node.public, &si).map_err(DkgError::EncryptSi)?;
 
-            debug!(parent: &self.c.log, "creating deal, share_index: {}", node.index);
+            debug!(&self.c.log, "creating deal, share_index: {}", node.index);
             deals.push(Deal {
                 share_index: node.index,
                 encrypted_share: cipher,
@@ -427,12 +455,17 @@ impl<S: Scheme> DistKeyGenerator<S> {
             }
 
             if !is_index_included(&self.c.old_nodes, bundle.dealer_index) {
-                debug!(parent: &self.c.log, "dealer {} is not in old_nodes list", bundle.dealer_index);
+                debug!(
+                    &self.c.log,
+                    "dealer {} is not in old_nodes list", bundle.dealer_index
+                );
                 continue;
             }
             if bundle.session_id != self.c.nonce {
-                error!(parent: &self.c.log, "evicting deal with invalid session id, dealer: {}",
-                bundle.dealer_index);
+                error!(
+                    &self.c.log,
+                    "evicting deal with invalid session id, dealer: {}", bundle.dealer_index
+                );
                 self.evicted.push(bundle.dealer_index);
                 continue;
             }
@@ -440,7 +473,10 @@ impl<S: Scheme> DistKeyGenerator<S> {
             if seen_index.contains(&bundle.dealer_index) {
                 // Already saw a bundle from the same dealer - clear sign of
                 // cheating so we evict him from the list
-                error!(parent: &self.c.log, "deal bundle already seen, evicting the dealer: {}", bundle.dealer_index);
+                error!(
+                    &self.c.log,
+                    "deal bundle already seen, evicting the dealer: {}", bundle.dealer_index
+                );
                 self.evicted.push(bundle.dealer_index);
                 continue;
             }
@@ -454,7 +490,10 @@ impl<S: Scheme> DistKeyGenerator<S> {
                 if !is_index_included(&self.c.new_nodes, deal.share_index) {
                     // Invalid index for share holder is a clear sign of cheating
                     // so we evict him from the list and we don't even need to look at the rest
-                    error!(parent: &self.c.log, "share holder evicted normally: {}", bundle.dealer_index);
+                    error!(
+                        &self.c.log,
+                        "share holder evicted normally: {}", bundle.dealer_index
+                    );
                     self.evicted.push(bundle.dealer_index);
                     break;
                 }
@@ -468,7 +507,11 @@ impl<S: Scheme> DistKeyGenerator<S> {
                         let comm = pub_poly.eval(self.nidx).v;
                         let comm_share = S::sk_to_pk(&share);
                         if comm != comm_share {
-                            error!(parent: &self.c.log, "deal share invalid wrt public poly, dealer: {}", bundle.dealer_index);
+                            error!(
+                                &self.c.log,
+                                "deal share invalid wrt public poly, dealer: {}",
+                                bundle.dealer_index
+                            );
                             // Invalid share - will issue complaint
                             continue;
                         }
@@ -478,11 +521,19 @@ impl<S: Scheme> DistKeyGenerator<S> {
                             let old_share_commit = self.old_pub_poly.eval(bundle.dealer_index).v;
                             if let Some(public_commit) = pub_poly.commit() {
                                 if &old_share_commit != public_commit {
-                                    error!(parent: &self.c.log, "inconsistent share from old member, dealer: {}", bundle.dealer_index);
+                                    error!(
+                                        &self.c.log,
+                                        "inconsistent share from old member, dealer: {}",
+                                        bundle.dealer_index
+                                    );
                                     continue;
                                 }
                             } else {
-                                error!(parent: &self.c.log, "public_commit can not be empty, dealer: {}", bundle.dealer_index);
+                                error!(
+                                    &self.c.log,
+                                    "public_commit can not be empty, dealer: {}",
+                                    bundle.dealer_index
+                                );
                                 continue;
                             };
                         }
@@ -490,10 +541,17 @@ impl<S: Scheme> DistKeyGenerator<S> {
                         self.statuses
                             .set(bundle.dealer_index, deal.share_index, true);
                         let _ = self.valid_shares.insert(bundle.dealer_index, share);
-                        tracing::info!(parent: &self.c.log, "valid deal processed, received from: {}", bundle.dealer_index)
+                        info!(
+                            &self.c.log,
+                            "valid deal processed, received from: {}", bundle.dealer_index
+                        )
                     }
                     Err(err) => {
-                        error!(parent: &self.c.log, "share decryption invalid, dealer index: {}, error: {err}", bundle.dealer_index);
+                        error!(
+                            &self.c.log,
+                            "share decryption invalid, dealer index: {}, error: {err}",
+                            bundle.dealer_index
+                        );
                         continue;
                     }
                 }
@@ -508,7 +566,10 @@ impl<S: Scheme> DistKeyGenerator<S> {
         for dealer in &self.c.old_nodes {
             let (nidx, is_found) = find_pub(&self.c.new_nodes, &dealer.public);
             if !is_found {
-                warn!("deals: public key not found for dealer: {}", dealer.index);
+                warn!(
+                    &self.c.log,
+                    "deals: public key not found for dealer: {}", dealer.index
+                );
                 continue;
             }
             self.statuses.set(dealer.index, nidx, true);
@@ -534,7 +595,7 @@ impl<S: Scheme> DistKeyGenerator<S> {
                     _ => COMPLAINT,
                 };
                 if !status {
-                    info!(parent: &self.c.log,"complaint towards node {}", node.index)
+                    info!(&self.c.log, "complaint towards node {}", node.index)
                 }
                 Some(Response {
                     dealer_index: node.index,
@@ -555,7 +616,11 @@ impl<S: Scheme> DistKeyGenerator<S> {
             bundle.signature = self.sign(&bundle)?;
 
             self.state = Phase::Response;
-            info!(parent: &self.c.log, "sending back {} responses", bundle.responses.len());
+            info!(
+                &self.c.log,
+                "sending back {} responses",
+                bundle.responses.len()
+            );
 
             Ok(bundle)
         }
@@ -583,11 +648,17 @@ impl<S: Scheme> DistKeyGenerator<S> {
                 continue;
             }
             if !is_index_included(&self.c.new_nodes, bundle.share_index) {
-                error!(parent: &self.c.log, "dealer already evicted, index: {}", bundle.share_index);
+                error!(
+                    &self.c.log,
+                    "dealer already evicted, index: {}", bundle.share_index
+                );
                 continue;
             }
             if bundle.session_id != self.c.nonce {
-                error!(parent: &self.c.log, "invalid session id, index: {}", bundle.share_index);
+                error!(
+                    &self.c.log,
+                    "invalid session id, index: {}", bundle.share_index
+                );
                 self.evicted_holders.push(bundle.share_index);
                 continue;
             }
@@ -596,7 +667,10 @@ impl<S: Scheme> DistKeyGenerator<S> {
                 if !is_index_included(&self.c.old_nodes, response.dealer_index) {
                     // The index of the dealer doesn't exist - clear violation so we evict
                     self.evicted_holders.push(bundle.share_index);
-                    error!(parent: &self.c.log, "dealer evicted, index doesn't exist: {}", bundle.share_index );
+                    error!(
+                        &self.c.log,
+                        "dealer evicted, index doesn't exist: {}", bundle.share_index
+                    );
                     continue;
                 }
 
@@ -619,7 +693,10 @@ impl<S: Scheme> DistKeyGenerator<S> {
                 continue;
             }
             if !all_sent.iter().any(|i| *i == n.index) {
-                error!(parent: &self.c.log, "response not seen from node {} (eviction)", n.index);
+                error!(
+                    &self.c.log,
+                    "response not seen from node {} (eviction)", n.index
+                );
                 self.evicted_holders.push(n.index)
             }
         }
@@ -629,7 +706,7 @@ impl<S: Scheme> DistKeyGenerator<S> {
         if !found_complaint && self.statuses.complete_success() {
             self.state = Phase::Finish;
             let res = self.compute_result()?;
-            info!(parent: &self.c.log, "DKG successful");
+            info!(&self.c.log, "DKG successful");
             return Ok(Flow::Output(res));
         }
 
@@ -640,14 +717,18 @@ impl<S: Scheme> DistKeyGenerator<S> {
             let complaints = status::length_complaints(self.statuses.status_of_dealer(&n.index));
             if complaints >= self.c.threshold {
                 self.evicted.push(n.index);
-                error!(parent: &self.c.log, "response phase eviction of node {}, too many complaints: {complaints}", n.index)
+                error!(
+                    &self.c.log,
+                    "response phase eviction of node {}, too many complaints: {complaints}",
+                    n.index
+                )
             }
         }
 
         self.state = Phase::Justif;
 
         if !self.can_issue {
-            debug!(parent: &self.c.log, "flow: new node is waiting for justifications");
+            debug!(&self.c.log, "flow: new node is waiting for justifications");
             return Ok(Flow::WaitingForJustif);
         }
 
@@ -665,14 +746,17 @@ impl<S: Scheme> DistKeyGenerator<S> {
                 share_index,
                 share: sh,
             });
-            info!(parent: &self.c.log, "producing justifications for node {}", share_index);
+            info!(
+                &self.c.log,
+                "producing justifications for node {}", share_index
+            );
             found_justifs = true;
             // Mark those shares as resolved in the statuses
             self.statuses.set(self.oidx, share_index, true)
         }
         if !found_justifs {
             // No justifications required from us!
-            debug!(parent: &self.c.log, "flow: waiting for justifications");
+            debug!(&self.c.log, "flow: waiting for justifications");
             return Ok(Flow::WaitingForJustif);
         }
 
@@ -683,7 +767,11 @@ impl<S: Scheme> DistKeyGenerator<S> {
             signature: vec![],
         };
         bundle.signature = self.sign(&bundle)?;
-        info!(parent: &self.c.log, "flow: {} justifications returned", bundle.justifications.len());
+        info!(
+            &self.c.log,
+            "flow: {} justifications returned",
+            bundle.justifications.len()
+        );
 
         Ok(Flow::Justif(bundle))
     }
@@ -703,19 +791,26 @@ impl<S: Scheme> DistKeyGenerator<S> {
             if seen.contains(&bundle.dealer_index) {
                 // Bundle contains duplicate - clear violation so we evict
                 self.evicted.push(bundle.dealer_index);
-                error!(parent: &self.c.log, "bundle contains duplicate - evicting dealer {}", bundle.dealer_index);
+                error!(
+                    &self.c.log,
+                    "bundle contains duplicate - evicting dealer {}", bundle.dealer_index
+                );
                 continue;
             }
 
             if self.can_issue && bundle.dealer_index == self.oidx {
                 // We dont treat our own justifications
-                debug!(parent: &self.c.log, "skipping own justification");
+                debug!(&self.c.log, "skipping own justification");
                 continue;
             }
 
             if !is_index_included(&self.c.old_nodes, bundle.dealer_index) {
                 // Index is invalid
-                error!(parent: &self.c.log, "index is not present in old nodes list - evicting dealer {}", bundle.dealer_index);
+                error!(
+                    &self.c.log,
+                    "index is not present in old nodes list - evicting dealer {}",
+                    bundle.dealer_index
+                );
                 continue;
             }
 
@@ -725,23 +820,32 @@ impl<S: Scheme> DistKeyGenerator<S> {
                 .any(|evicted| evicted == &bundle.dealer_index)
             {
                 // Already evicted node
-                warn!(parent: &self.c.log, "already evicted dealer {}", bundle.dealer_index);
+                warn!(
+                    &self.c.log,
+                    "already evicted dealer {}", bundle.dealer_index
+                );
                 continue;
             }
 
             if bundle.session_id != self.c.nonce {
                 self.evicted.push(bundle.dealer_index);
-                warn!(parent: &self.c.log, "invalid session id - evicting dealer {}", bundle.dealer_index);
+                warn!(
+                    &self.c.log,
+                    "invalid session id - evicting dealer {}", bundle.dealer_index
+                );
                 continue;
             }
-            info!(parent: &self.c.log, "basic sanity checks done!");
+            info!(&self.c.log, "basic sanity checks done!");
 
             let _ = seen.insert(bundle.dealer_index);
             for justif in &bundle.justifications {
                 if !is_index_included(&self.c.new_nodes, justif.share_index) {
                     // Invalid index - clear violation so we evict
                     self.evicted.push(bundle.dealer_index);
-                    error!(parent: &self.c.log, "invalid index in justifications - evicting dealer {}",bundle.dealer_index);
+                    error!(
+                        &self.c.log,
+                        "invalid index in justifications - evicting dealer {}", bundle.dealer_index
+                    );
                     continue;
                 }
 
@@ -752,7 +856,10 @@ impl<S: Scheme> DistKeyGenerator<S> {
                     if commit != expected {
                         // invalid justification - evict
                         self.evicted.push(bundle.dealer_index);
-                        error!(parent: &self.c.log, "new share commit invalid - evicting dealer {}", bundle.dealer_index);
+                        error!(
+                            &self.c.log,
+                            "new share commit invalid - evicting dealer {}", bundle.dealer_index
+                        );
                         continue;
                     }
 
@@ -764,24 +871,35 @@ impl<S: Scheme> DistKeyGenerator<S> {
                         if old_share_commit != *public_commit {
                             // Inconsistent share from old member
                             self.evicted.push(bundle.dealer_index);
-                            error!(parent: &self.c.log, "old share commit not equal to public commit - evicting dealer {}", bundle.dealer_index);
+                            error!(
+                                &self.c.log,
+                                "old share commit not equal to public commit - evicting dealer {}",
+                                bundle.dealer_index
+                            );
                             continue;
                         }
-                        info!(parent: &self.c.log, "old share commit and public commit valid for {}",bundle.dealer_index)
+                        info!(
+                            &self.c.log,
+                            "old share commit and public commit valid for {}", bundle.dealer_index
+                        )
                     }
                     // Valid share -> mark OK
                     self.statuses
                         .set(bundle.dealer_index, justif.share_index, SUCCESS);
                     if justif.share_index == self.nidx {
                         // store the share if it's for us
-                        info!("justifications: saving our key share");
+                        info!(&self.c.log, "justifications: saving our key share");
                         let _ = self.valid_shares.insert(bundle.dealer_index, justif.share);
                     }
                 } else {
                     // Dealer hasn't given any public polynomial at the first phase
                     // so we evict directly - no need to look at its justifications
                     self.evicted.push(bundle.dealer_index);
-                    error!(parent: &self.c.log, "justifications: public polynomial missing - evicting dealer {}", bundle.dealer_index);
+                    error!(
+                        &self.c.log,
+                        "justifications: public polynomial missing - evicting dealer {}",
+                        bundle.dealer_index
+                    );
                     break;
                 }
             }
@@ -789,7 +907,7 @@ impl<S: Scheme> DistKeyGenerator<S> {
 
         // Check if we are evicted or not
         if let Err(err) = self.check_if_evicted(Phase::Justif) {
-            error!(parent: &self.c.log, "justification: {err}");
+            error!(&self.c.log, "justification: {err}");
             return Err(err);
         }
 
@@ -938,7 +1056,10 @@ impl<S: Scheme> DistKeyGenerator<S> {
                 // This dealer has some unjustified shares
                 // no need to check for the evicted list since the status matrix
                 // has been set previously to complaint for those
-                warn!(parent: &self.c.log, "this dealer has some unjustified shares, index: {}",n.index);
+                warn!(
+                    &self.c.log,
+                    "this dealer has some unjustified shares, index: {}", n.index
+                );
                 continue;
             }
 

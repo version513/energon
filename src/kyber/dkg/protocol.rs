@@ -6,11 +6,14 @@ use super::dkg::Phase;
 use super::structs::*;
 use crate::traits::Scheme;
 
+use slog::error;
+use slog::info;
+use slog::warn;
+use slog::Logger;
 use std::collections::BTreeMap;
 use std::fmt::Display;
 use tokio::sync::mpsc;
 use tokio::time::Duration;
-use tracing::*;
 
 /// Sender to forward bundles to the [`Protocol`].
 pub type BundleSender<T> = mpsc::Sender<Bundle<T>>;
@@ -141,12 +144,12 @@ impl<S: Scheme> Protocol<S> {
                 next_phase = phaser.new_phase.recv()=>{ if let Some(phase) = next_phase{
                     match phase{
                         PhaseTime::Response=>{
-                            warn!(parent: self.log(), "phaser: moving to response phase, got {} deals", &deals.len());
+                            warn!(self.log(), "phaser: moving to response phase, got {} deals", &deals.len());
                             self.to_resp(&mut deals).await?;
                         },
                         PhaseTime::Justification=>{
                             if self.phase() == Phase::Response{
-                                warn!(parent: self.log(), "phaser: moving to justifications phase, got {} resps", &resps.len());
+                                warn!(self.log(), "phaser: moving to justifications phase, got {} resps", &resps.len());
                                 match self.dkg.process_responses(&resps.take())? {
                                     Flow::Output(out) => break Ok(Some(out)),
                                     Flow::Justif(just) => {
@@ -166,13 +169,13 @@ impl<S: Scheme> Protocol<S> {
                 }
                 new_bundle = bundle_rx.recv()=>{ if let Some(bundle) = new_bundle{
                     if let Err(err) = self.dkg.c.verify_bundle_signature(&bundle){
-                        error!(parent: self.log(), "ignoring new {bundle}, reason: {err}");
+                        error!(self.log(), "ignoring new {bundle}, reason: {err}");
                     } else {
                         match bundle {
                             Bundle::Deal(new_deal) =>{
                                 deals.push(new_deal)?;
                                 if deals.len() == old_n{
-                                    info!(parent: self.log(), "fast moving to response phase, got {old_n} deals, current phase: {}", self.phase());
+                                    info!(self.log(), "fast moving to response phase, got {old_n} deals, current phase: {}", self.phase());
                                     self.to_resp(&mut deals).await?;
 
                                 }
@@ -180,12 +183,12 @@ impl<S: Scheme> Protocol<S> {
                             Bundle::Response(new_resp) =>{
                                 resps.push(new_resp)?;
                                 if resps.len() == new_n{
-                                    info!(parent: self.log(), "fast moving to justifications phase, got {new_n} resps, current phase: {}", self.phase());
+                                    info!(self.log(), "fast moving to justifications phase, got {new_n} resps, current phase: {}", self.phase());
                                     if self.phase() == Phase::Response{
                                         match self.dkg.process_responses(&resps.take())? {
                                             Flow::Output(out) => break Ok(Some(out)),
                                             Flow::Justif(just) => {
-                                                info!(parent: self.log(), "sendJustifications, sending, from {} responses", resps.len());
+                                                info!(self.log(), "sendJustifications, sending, from {} responses", resps.len());
                                                 self.board.push_justifications(just).await?
                                             }
                                             // Justifications are expected from other nodes.
@@ -229,7 +232,11 @@ impl<S: Scheme> Protocol<S> {
     async fn send_deals(&mut self) -> Result<(), DkgError> {
         if self.can_issue() {
             let bundle = self.dkg.deals()?;
-            info!(parent: self.log(), "send_deals, sending out deal bundle {} deals",bundle.deals.len());
+            info!(
+                self.log(),
+                "send_deals, sending out deal bundle {} deals",
+                bundle.deals.len()
+            );
             self.board.push_deals(bundle).await
         } else {
             Ok(())
@@ -239,7 +246,11 @@ impl<S: Scheme> Protocol<S> {
     async fn send_responses(&mut self, deals: Vec<DealBundle<S>>) -> Result<(), DkgError> {
         let deals_len = deals.len();
         let bundle = self.dkg.process_deals(deals)?;
-        info!(parent: self.log(), "send_responses, sending out {} responses, from {deals_len} deals", bundle.responses.len());
+        info!(
+            self.log(),
+            "send_responses, sending out {} responses, from {deals_len} deals",
+            bundle.responses.len()
+        );
         self.board.push_responses(bundle).await?;
 
         Ok(())
@@ -254,7 +265,7 @@ impl<S: Scheme> Protocol<S> {
     }
 
     #[inline(always)]
-    fn log(&self) -> &tracing::Span {
+    fn log(&self) -> &Logger {
         &self.dkg.c.log
     }
 }
