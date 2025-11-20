@@ -116,10 +116,34 @@ pub struct Config<S: Scheme> {
     pub old_threshold: u32,
     /// Required to avoid replay attacks from previous runs of a DKG.
     pub nonce: [u8; 32],
-    pub log: tracing::Span,
+    /// Optional, see [`Config::new`].
+    pub log: Span,
 }
 
 impl<S: Scheme> Config<S> {
+    pub fn new(
+        long_term: S::Scalar,
+        old_nodes: Vec<Node<S>>,
+        public_coeffs: Vec<KeyPoint<S>>,
+        new_nodes: Vec<Node<S>>,
+        share: Option<DistKeyShare<S>>,
+        threshold: u32,
+        old_threshold: u32,
+        nonce: [u8; 32],
+        log: Option<Span>,
+    ) -> Self {
+        Self {
+            long_term,
+            old_nodes,
+            public_coeffs,
+            new_nodes,
+            share,
+            threshold,
+            old_threshold,
+            nonce,
+            log: log.unwrap_or(Span::none()),
+        }
+    }
     pub fn get_dealer_key(&self, index: u32, is_response: bool) -> Result<&KeyPoint<S>, DkgError> {
         let dealers = if is_response || self.old_nodes.is_empty() {
             &self.new_nodes
