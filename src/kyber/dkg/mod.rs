@@ -5,6 +5,8 @@ pub(crate) mod dkg;
 pub(crate) mod protocol;
 pub(crate) mod status;
 pub(crate) mod structs;
+#[cfg(test)]
+mod test;
 
 pub use dkg::{minimum_t, Config, DkgError};
 pub use protocol::{Bundle, BundleReceiver, BundleSender, Protocol};
